@@ -75,36 +75,7 @@ fn get_selected_backend() -> BackendKind {
 }
 
 
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub(crate) fn straus_multiscalar_mul<I, J>(scalars: I, points: J) -> EdwardsPoint
-where
-    I: IntoIterator,
-    I::Item: core::borrow::Borrow<Scalar>,
-    J: IntoIterator,
-    J::Item: core::borrow::Borrow<EdwardsPoint>,
-{
-    use crate::traits::MultiscalarMul;
 
-    match get_selected_backend() {
-        #[cfg(curve25519_dalek_backend = "simd")]
-        BackendKind::Avx2 => {
-            self::vector::scalar_mul::straus::spec_avx2::Straus::multiscalar_mul::<I, J>(
-                scalars, points,
-            )
-        }
-        #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-        BackendKind::Avx512 => {
-            self::vector::scalar_mul::straus::spec_avx512ifma_avx512vl::Straus::multiscalar_mul::<
-                I,
-                J,
-            >(scalars, points)
-        }
-        BackendKind::Serial => {
-            self::serial::scalar_mul::straus::Straus::multiscalar_mul::<I, J>(scalars, points)
-        }
-    }
-}
 
 /// Perform constant-time, variable-base scalar multiplication.
 pub(crate) fn variable_base_mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
