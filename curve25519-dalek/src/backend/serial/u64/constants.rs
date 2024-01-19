@@ -12,7 +12,6 @@
 //! This module contains backend-specific constant values, such as the 64-bit limbs of curve constants.
 
 use super::field::FieldElement51;
-use super::scalar::Scalar52;
 
 #[cfg(feature = "precomputed-tables")]
 use crate::{
@@ -30,28 +29,8 @@ pub(crate) const EDWARDS_D: FieldElement51 = FieldElement51::from_limbs([
 ]);
 
 
-/// `L` is the order of base point, i.e. 2^252 + 27742317777372353535851937790883648493
-pub(crate) const L: Scalar52 = Scalar52([
-    0x0002631a5cf5d3ed,
-    0x000dea2f79cd6581,
-    0x000000000014def9,
-    0x0000000000000000,
-    0x0000100000000000,
-]);
-
-/// `L` * `LFACTOR` = -1 (mod 2^52)
-pub(crate) const LFACTOR: u64 = 0x51da312547e1b;
 
 
-
-/// `RR` = (R^2) % L where R = 2^260
-pub(crate) const RR: Scalar52 = Scalar52([
-    0x0009d265e952d13b,
-    0x000d63c715bea69f,
-    0x0005be65cb687604,
-    0x0003dceec73d217f,
-    0x000009411b7c309a,
-]);
 
 /// Odd multiples of the basepoint `[B, 3B, 5B, 7B, 9B, 11B, 13B, 15B, ..., 127B]`.
 #[cfg(feature = "precomputed-tables")]

@@ -22,6 +22,4 @@
 
 pub(crate) mod field;
 
-pub(crate) mod scalar;
-
 pub(crate) mod constants;
