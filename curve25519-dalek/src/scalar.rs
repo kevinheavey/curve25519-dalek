@@ -112,12 +112,8 @@
 //! has been enabled.
 
 use core::borrow::Borrow;
-use core::cmp::{Eq, PartialEq};
-use core::convert::TryInto;
-use core::fmt::Debug;
-use core::iter::{Product, Sum};
+use core::iter::{Sum};
 use core::ops::Index;
-use core::ops::Neg;
 use core::ops::{Add, AddAssign};
 use core::ops::{Mul, MulAssign};
 use core::ops::{Sub, SubAssign};
@@ -137,15 +133,7 @@ use digest::generic_array::typenum::U64;
 #[cfg(feature = "digest")]
 use digest::Digest;
 
-use subtle::Choice;
-use subtle::ConditionallySelectable;
-use subtle::ConstantTimeEq;
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use crate::backend;
-use crate::constants;
 
 cfg_if! {
     if #[cfg(curve25519_dalek_backend = "fiat")] {
@@ -251,24 +239,8 @@ impl Scalar {
     }
 }
 
-impl Debug for Scalar {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "Scalar{{\n\tbytes: {:?},\n}}", &self.bytes)
-    }
-}
 
-impl Eq for Scalar {}
-impl PartialEq for Scalar {
-    fn eq(&self, other: &Self) -> bool {
-        self.ct_eq(other).into()
-    }
-}
 
-impl ConstantTimeEq for Scalar {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.bytes.ct_eq(&other.bytes)
-    }
-}
 
 impl Index<usize> for Scalar {
     type Output = u8;
@@ -336,105 +308,11 @@ impl<'a, 'b> Sub<&'b Scalar> for &'a Scalar {
 
 define_sub_variants!(LHS = Scalar, RHS = Scalar, Output = Scalar);
 
-impl<'a> Neg for &'a Scalar {
-    type Output = Scalar;
-    #[allow(non_snake_case)]
-    fn neg(self) -> Scalar {
-        let self_R = UnpackedScalar::mul_internal(&self.unpack(), &constants::R);
-        let self_mod_l = UnpackedScalar::montgomery_reduce(&self_R);
-        UnpackedScalar::sub(&UnpackedScalar::ZERO, &self_mod_l).pack()
-    }
-}
 
-impl Neg for Scalar {
-    type Output = Scalar;
-    fn neg(self) -> Scalar {
-        -&self
-    }
-}
 
-impl ConditionallySelectable for Scalar {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let mut bytes = [0u8; 32];
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..32 {
-            bytes[i] = u8::conditional_select(&a.bytes[i], &b.bytes[i], choice);
-        }
-        Scalar { bytes }
-    }
-}
 
-#[cfg(feature = "serde")]
-use serde::de::Visitor;
-#[cfg(feature = "serde")]
-use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
-#[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl Serialize for Scalar {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        use serde::ser::SerializeTuple;
-        let mut tup = serializer.serialize_tuple(32)?;
-        for byte in self.as_bytes().iter() {
-            tup.serialize_element(byte)?;
-        }
-        tup.end()
-    }
-}
 
-#[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Scalar {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct ScalarVisitor;
-
-        impl<'de> Visitor<'de> for ScalarVisitor {
-            type Value = Scalar;
-
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                formatter.write_str(
-                    "a sequence of 32 bytes whose little-endian interpretation is less than the \
-                    basepoint order ℓ",
-                )
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Scalar, A::Error>
-            where
-                A: serde::de::SeqAccess<'de>,
-            {
-                let mut bytes = [0u8; 32];
-                #[allow(clippy::needless_range_loop)]
-                for i in 0..32 {
-                    bytes[i] = seq
-                        .next_element()?
-                        .ok_or_else(|| serde::de::Error::invalid_length(i, &"expected 32 bytes"))?;
-                }
-                Option::from(Scalar::from_canonical_bytes(bytes))
-                    .ok_or_else(|| serde::de::Error::custom("scalar was not canonically encoded"))
-            }
-        }
-
-        deserializer.deserialize_tuple(32, ScalarVisitor)
-    }
-}
-
-impl<T> Product<T> for Scalar
-where
-    T: Borrow<Scalar>,
-{
-    fn product<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = T>,
-    {
-        iter.fold(Scalar::ONE, |acc, item| acc * item.borrow())
-    }
-}
 
 impl<T> Sum<T> for Scalar
 where
@@ -448,89 +326,13 @@ where
     }
 }
 
-impl From<u8> for Scalar {
-    fn from(x: u8) -> Scalar {
-        let mut s_bytes = [0u8; 32];
-        s_bytes[0] = x;
-        Scalar { bytes: s_bytes }
-    }
-}
 
-impl From<u16> for Scalar {
-    fn from(x: u16) -> Scalar {
-        let mut s_bytes = [0u8; 32];
-        let x_bytes = x.to_le_bytes();
-        s_bytes[0..x_bytes.len()].copy_from_slice(&x_bytes);
-        Scalar { bytes: s_bytes }
-    }
-}
 
-impl From<u32> for Scalar {
-    fn from(x: u32) -> Scalar {
-        let mut s_bytes = [0u8; 32];
-        let x_bytes = x.to_le_bytes();
-        s_bytes[0..x_bytes.len()].copy_from_slice(&x_bytes);
-        Scalar { bytes: s_bytes }
-    }
-}
 
-impl From<u64> for Scalar {
-    /// Construct a scalar from the given `u64`.
-    ///
-    /// # Inputs
-    ///
-    /// An `u64` to convert to a `Scalar`.
-    ///
-    /// # Returns
-    ///
-    /// A `Scalar` corresponding to the input `u64`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use curve25519_dalek::scalar::Scalar;
-    ///
-    /// let fourtytwo = Scalar::from(42u64);
-    /// let six = Scalar::from(6u64);
-    /// let seven = Scalar::from(7u64);
-    ///
-    /// assert!(fourtytwo == six * seven);
-    /// ```
-    fn from(x: u64) -> Scalar {
-        let mut s_bytes = [0u8; 32];
-        let x_bytes = x.to_le_bytes();
-        s_bytes[0..x_bytes.len()].copy_from_slice(&x_bytes);
-        Scalar { bytes: s_bytes }
-    }
-}
-
-impl From<u128> for Scalar {
-    fn from(x: u128) -> Scalar {
-        let mut s_bytes = [0u8; 32];
-        let x_bytes = x.to_le_bytes();
-        s_bytes[0..x_bytes.len()].copy_from_slice(&x_bytes);
-        Scalar { bytes: s_bytes }
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for Scalar {
-    fn zeroize(&mut self) {
-        self.bytes.zeroize();
-    }
-}
 
 impl Scalar {
     /// The scalar \\( 0 \\).
     pub(crate) const ZERO: Self = Self { bytes: [0u8; 32] };
-
-    /// The scalar \\( 1 \\).
-    pub(crate) const ONE: Self = Self {
-        bytes: [
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
-        ],
-    };
 
     #[cfg(feature = "digest")]
     /// Hash a slice of bytes into a scalar.
@@ -610,132 +412,6 @@ impl Scalar {
     }
 
 
-    /// Compute a width-\\(w\\) "Non-Adjacent Form" of this scalar.
-    ///
-    /// A width-\\(w\\) NAF of a positive integer \\(k\\) is an expression
-    /// $$
-    /// k = \sum_{i=0}\^m n\_i 2\^i,
-    /// $$
-    /// where each nonzero
-    /// coefficient \\(n\_i\\) is odd and bounded by \\(|n\_i| < 2\^{w-1}\\),
-    /// \\(n\_{m-1}\\) is nonzero, and at most one of any \\(w\\) consecutive
-    /// coefficients is nonzero.  (Hankerson, Menezes, Vanstone; def 3.32).
-    ///
-    /// The length of the NAF is at most one more than the length of
-    /// the binary representation of \\(k\\).  This is why the
-    /// `Scalar` type maintains an invariant (invariant #1) that the top bit is
-    /// \\(0\\), so that the NAF of a scalar has at most 256 digits.
-    ///
-    /// Intuitively, this is like a binary expansion, except that we
-    /// allow some coefficients to grow in magnitude up to
-    /// \\(2\^{w-1}\\) so that the nonzero coefficients are as sparse
-    /// as possible.
-    ///
-    /// When doing scalar multiplication, we can then use a lookup
-    /// table of precomputed multiples of a point to add the nonzero
-    /// terms \\( k_i P \\).  Using signed digits cuts the table size
-    /// in half, and using odd digits cuts the table size in half
-    /// again.
-    ///
-    /// To compute a \\(w\\)-NAF, we use a modification of Algorithm 3.35 of HMV:
-    ///
-    /// 1. \\( i \gets 0 \\)
-    /// 2. While \\( k \ge 1 \\):
-    ///     1. If \\(k\\) is odd, \\( n_i \gets k \operatorname{mods} 2^w \\), \\( k \gets k - n_i \\).
-    ///     2. If \\(k\\) is even, \\( n_i \gets 0 \\).
-    ///     3. \\( k \gets k / 2 \\), \\( i \gets i + 1 \\).
-    /// 3. Return \\( n_0, n_1, ... , \\)
-    ///
-    /// Here \\( \bar x = x \operatorname{mods} 2^w \\) means the
-    /// \\( \bar x \\) with \\( \bar x \equiv x \pmod{2^w} \\) and
-    /// \\( -2^{w-1} \leq \bar x < 2^{w-1} \\).
-    ///
-    /// We implement this by scanning across the bits of \\(k\\) from
-    /// least-significant bit to most-significant-bit.
-    /// Write the bits of \\(k\\) as
-    /// $$
-    /// k = \sum\_{i=0}\^m k\_i 2^i,
-    /// $$
-    /// and split the sum as
-    /// $$
-    /// k = \sum\_{i=0}^{w-1} k\_i 2^i + 2^w \sum\_{i=0} k\_{i+w} 2^i
-    /// $$
-    /// where the first part is \\( k \mod 2^w \\).
-    ///
-    /// If \\( k \mod 2^w\\) is odd, and \\( k \mod 2^w < 2^{w-1} \\), then we emit
-    /// \\( n_0 = k \mod 2^w \\).  Instead of computing
-    /// \\( k - n_0 \\), we just advance \\(w\\) bits and reindex.
-    ///
-    /// If \\( k \mod 2^w\\) is odd, and \\( k \mod 2^w \ge 2^{w-1} \\), then
-    /// \\( n_0 = k \operatorname{mods} 2^w = k \mod 2^w - 2^w \\).
-    /// The quantity \\( k - n_0 \\) is
-    /// $$
-    /// \begin{aligned}
-    /// k - n_0 &= \sum\_{i=0}^{w-1} k\_i 2^i + 2^w \sum\_{i=0} k\_{i+w} 2^i
-    ///          - \sum\_{i=0}^{w-1} k\_i 2^i + 2^w \\\\
-    /// &= 2^w + 2^w \sum\_{i=0} k\_{i+w} 2^i
-    /// \end{aligned}
-    /// $$
-    /// so instead of computing the subtraction, we can set a carry
-    /// bit, advance \\(w\\) bits, and reindex.
-    ///
-    /// If \\( k \mod 2^w\\) is even, we emit \\(0\\), advance 1 bit
-    /// and reindex.  In fact, by setting all digits to \\(0\\)
-    /// initially, we don't need to emit anything.
-    pub(crate) fn non_adjacent_form(&self, w: usize) -> [i8; 256] {
-        // required by the NAF definition
-        debug_assert!(w >= 2);
-        // required so that the NAF digits fit in i8
-        debug_assert!(w <= 8);
-
-        let mut naf = [0i8; 256];
-
-        let mut x_u64 = [0u64; 5];
-        read_le_u64_into(&self.bytes, &mut x_u64[0..4]);
-
-        let width = 1 << w;
-        let window_mask = width - 1;
-
-        let mut pos = 0;
-        let mut carry = 0;
-        while pos < 256 {
-            // Construct a buffer of bits of the scalar, starting at bit `pos`
-            let u64_idx = pos / 64;
-            let bit_idx = pos % 64;
-            let bit_buf: u64 = if bit_idx < 64 - w {
-                // This window's bits are contained in a single u64
-                x_u64[u64_idx] >> bit_idx
-            } else {
-                // Combine the current u64's bits with the bits from the next u64
-                (x_u64[u64_idx] >> bit_idx) | (x_u64[1 + u64_idx] << (64 - bit_idx))
-            };
-
-            // Add the carry into the current window
-            let window = carry + (bit_buf & window_mask);
-
-            if window & 1 == 0 {
-                // If the window value is even, preserve the carry and continue.
-                // Why is the carry preserved?
-                // If carry == 0 and window & 1 == 0, then the next carry should be 0
-                // If carry == 1 and window & 1 == 0, then bit_buf & 1 == 1 so the next carry should be 1
-                pos += 1;
-                continue;
-            }
-
-            if window < width / 2 {
-                carry = 0;
-                naf[pos] = window as i8;
-            } else {
-                carry = 1;
-                naf[pos] = (window as i8).wrapping_sub(width as i8);
-            }
-
-            pos += w;
-        }
-
-        naf
-    }
-
     /// Write this scalar in radix 16, with coefficients in \\([-8,8)\\),
     /// i.e., compute \\(a\_i\\) such that
     /// $$
@@ -780,105 +456,6 @@ impl Scalar {
         output
     }
 
-    /// Returns a size hint indicating how many entries of the return
-    /// value of `to_radix_2w` are nonzero.
-    #[cfg(any(feature = "alloc", all(test, feature = "precomputed-tables")))]
-    pub(crate) fn to_radix_2w_size_hint(w: usize) -> usize {
-        debug_assert!(w >= 4);
-        debug_assert!(w <= 8);
-
-        let digits_count = match w {
-            4..=7 => (256 + w - 1) / w,
-            // See comment in to_radix_2w on handling the terminal carry.
-            8 => (256 + w - 1) / w + 1_usize,
-            _ => panic!("invalid radix parameter"),
-        };
-
-        debug_assert!(digits_count <= 64);
-        digits_count
-    }
-
-    /// Creates a representation of a Scalar in radix \\( 2^w \\) with \\(w = 4, 5, 6, 7, 8\\) for
-    /// use with the Pippenger algorithm. Higher radixes are not supported to save cache space.
-    /// Radix 256 is near-optimal even for very large inputs.
-    ///
-    /// Radix below 16 or above 256 is prohibited.
-    /// This method returns digits in a fixed-sized array, excess digits are zeroes.
-    ///
-    /// For radix 16, `Self` must be less than \\(2^{255}\\). This is because most integers larger
-    /// than \\(2^{255}\\) are unrepresentable in the form described below for \\(w = 4\\). This
-    /// would be true for \\(w = 8\\) as well, but it is compensated for by increasing the size
-    /// hint by 1.
-    ///
-    /// ## Scalar representation
-    ///
-    /// Radix \\(2\^w\\), with \\(n = ceil(256/w)\\) coefficients in \\([-(2\^w)/2,(2\^w)/2)\\),
-    /// i.e., scalar is represented using digits \\(a\_i\\) such that
-    /// $$
-    ///    a = a\_0 + a\_1 2\^1w + \cdots + a_{n-1} 2\^{w*(n-1)},
-    /// $$
-    /// with \\(-2\^w/2 \leq a_i < 2\^w/2\\) for \\(0 \leq i < (n-1)\\) and \\(-2\^w/2 \leq a_{n-1} \leq 2\^w/2\\).
-    ///
-    #[cfg(any(feature = "alloc", feature = "precomputed-tables"))]
-    pub(crate) fn as_radix_2w(&self, w: usize) -> [i8; 64] {
-        debug_assert!(w >= 4);
-        debug_assert!(w <= 8);
-
-        if w == 4 {
-            return self.as_radix_16();
-        }
-
-        // Scalar formatted as four `u64`s with carry bit packed into the highest bit.
-        let mut scalar64x4 = [0u64; 4];
-        read_le_u64_into(&self.bytes, &mut scalar64x4[0..4]);
-
-        let radix: u64 = 1 << w;
-        let window_mask: u64 = radix - 1;
-
-        let mut carry = 0u64;
-        let mut digits = [0i8; 64];
-        let digits_count = (256 + w - 1) / w;
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..digits_count {
-            // Construct a buffer of bits of the scalar, starting at `bit_offset`.
-            let bit_offset = i * w;
-            let u64_idx = bit_offset / 64;
-            let bit_idx = bit_offset % 64;
-
-            // Read the bits from the scalar
-            let bit_buf: u64 = if bit_idx < 64 - w || u64_idx == 3 {
-                // This window's bits are contained in a single u64,
-                // or it's the last u64 anyway.
-                scalar64x4[u64_idx] >> bit_idx
-            } else {
-                // Combine the current u64's bits with the bits from the next u64
-                (scalar64x4[u64_idx] >> bit_idx) | (scalar64x4[1 + u64_idx] << (64 - bit_idx))
-            };
-
-            // Read the actual coefficient value from the window
-            let coef = carry + (bit_buf & window_mask); // coef = [0, 2^r)
-
-            // Recenter coefficients from [0,2^w) to [-2^w/2, 2^w/2)
-            carry = (coef + (radix / 2)) >> w;
-            digits[i] = ((coef as i64) - (carry << w) as i64) as i8;
-        }
-
-        // When 4 < w < 8, we can fold the final carry onto the last digit d,
-        // because d < 2^w/2 so d + carry*2^w = d + 1*2^w < 2^(w+1) < 2^8.
-        //
-        // When w = 8, we can't fit carry*2^w into an i8.  This should
-        // not happen anyways, because the final carry will be 0 for
-        // reduced scalars, but Scalar invariant #1 allows 255-bit scalars.
-        // To handle this, we expand the size_hint by 1 when w=8,
-        // and accumulate the final carry onto another digit.
-        match w {
-            8 => digits[digits_count] += carry as i8,
-            _ => digits[digits_count - 1] += (carry << w) as i8,
-        }
-
-        digits
-    }
-
     /// Unpack this `Scalar` to an `UnpackedScalar` for faster arithmetic.
     pub(crate) fn unpack(&self) -> UnpackedScalar {
         UnpackedScalar::from_bytes(&self.bytes)
@@ -891,158 +468,5 @@ impl UnpackedScalar {
         Scalar {
             bytes: self.as_bytes(),
         }
-    }
-}
-
-#[cfg(feature = "group")]
-impl Field for Scalar {
-    const ZERO: Self = Self::ZERO;
-    const ONE: Self = Self::ONE;
-
-    fn random(mut rng: impl RngCore) -> Self {
-        // NOTE: this is duplicated due to different `rng` bounds
-        let mut scalar_bytes = [0u8; 64];
-        rng.fill_bytes(&mut scalar_bytes);
-        Self::from_bytes_mod_order_wide(&scalar_bytes)
-    }
-
-    fn square(&self) -> Self {
-        self * self
-    }
-
-    fn double(&self) -> Self {
-        self + self
-    }
-
-    fn invert(&self) -> CtOption<Self> {
-        CtOption::new(self.invert(), !self.is_zero())
-    }
-
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        group::ff::helpers::sqrt_ratio_generic(num, div)
-    }
-
-    fn sqrt(&self) -> CtOption<Self> {
-        group::ff::helpers::sqrt_tonelli_shanks(
-            self,
-            [
-                0xcb02_4c63_4b9e_ba7d,
-                0x029b_df3b_d45e_f39a,
-                0x0000_0000_0000_0000,
-                0x0200_0000_0000_0000,
-            ],
-        )
-    }
-}
-
-#[cfg(feature = "group")]
-impl PrimeField for Scalar {
-    type Repr = [u8; 32];
-
-    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        Self::from_canonical_bytes(repr)
-    }
-
-    fn from_repr_vartime(repr: Self::Repr) -> Option<Self> {
-        // Check that the high bit is not set
-        if (repr[31] >> 7) != 0u8 {
-            return None;
-        }
-
-        let candidate = Scalar { bytes: repr };
-
-        if candidate == candidate.reduce() {
-            Some(candidate)
-        } else {
-            None
-        }
-    }
-
-    fn to_repr(&self) -> Self::Repr {
-        self.to_bytes()
-    }
-
-    fn is_odd(&self) -> Choice {
-        Choice::from(self.as_bytes()[0] & 1)
-    }
-
-    const MODULUS: &'static str =
-        "0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed";
-    const NUM_BITS: u32 = 253;
-    const CAPACITY: u32 = 252;
-
-    const TWO_INV: Self = Self {
-        bytes: [
-            0xf7, 0xe9, 0x7a, 0x2e, 0x8d, 0x31, 0x09, 0x2c, 0x6b, 0xce, 0x7b, 0x51, 0xef, 0x7c,
-            0x6f, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x08,
-        ],
-    };
-    const MULTIPLICATIVE_GENERATOR: Self = Self {
-        bytes: [
-            2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
-        ],
-    };
-    const S: u32 = 2;
-    const ROOT_OF_UNITY: Self = Self {
-        bytes: [
-            0xd4, 0x07, 0xbe, 0xeb, 0xdf, 0x75, 0x87, 0xbe, 0xfe, 0x83, 0xce, 0x42, 0x53, 0x56,
-            0xf0, 0x0e, 0x7a, 0xc2, 0xc1, 0xab, 0x60, 0x6d, 0x3d, 0x7d, 0xe7, 0x81, 0x79, 0xe0,
-            0x10, 0x73, 0x4a, 0x09,
-        ],
-    };
-    const ROOT_OF_UNITY_INV: Self = Self {
-        bytes: [
-            0x19, 0xcc, 0x37, 0x71, 0x3a, 0xed, 0x8a, 0x99, 0xd7, 0x18, 0x29, 0x60, 0x8b, 0xa3,
-            0xee, 0x05, 0x86, 0x3d, 0x3e, 0x54, 0x9f, 0x92, 0xc2, 0x82, 0x18, 0x7e, 0x86, 0x1f,
-            0xef, 0x8c, 0xb5, 0x06,
-        ],
-    };
-    const DELTA: Self = Self {
-        bytes: [
-            16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
-        ],
-    };
-}
-
-#[cfg(feature = "group-bits")]
-impl PrimeFieldBits for Scalar {
-    type ReprBits = [u8; 32];
-
-    fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
-        self.to_repr().into()
-    }
-
-    fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        constants::BASEPOINT_ORDER_PRIVATE.to_bytes().into()
-    }
-}
-
-#[cfg(feature = "group")]
-impl FromUniformBytes<64> for Scalar {
-    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
-        Scalar::from_bytes_mod_order_wide(bytes)
-    }
-}
-
-/// Read one or more u64s stored as little endian bytes.
-///
-/// ## Panics
-/// Panics if `src.len() != 8 * dst.len()`.
-fn read_le_u64_into(src: &[u8], dst: &mut [u64]) {
-    assert!(
-        src.len() == 8 * dst.len(),
-        "src.len() = {}, dst.len() = {}",
-        src.len(),
-        dst.len()
-    );
-    for (bytes, val) in src.chunks(8).zip(dst.iter_mut()) {
-        *val = u64::from_le_bytes(
-            bytes
-                .try_into()
-                .expect("Incorrect src length, should be 8 * dst.len()"),
-        );
     }
 }

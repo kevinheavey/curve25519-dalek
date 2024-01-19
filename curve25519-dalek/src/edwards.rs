@@ -95,7 +95,6 @@
 
 use core::array::TryFromSliceError;
 use core::borrow::Borrow;
-use core::fmt::Debug;
 use core::iter::Iterator;
 use core::iter::Sum;
 use core::ops::{Add, Neg, Sub};
@@ -116,7 +115,6 @@ use {
 
 use subtle::Choice;
 use subtle::ConditionallyNegatable;
-use subtle::ConstantTimeEq;
 
 use crate::constants;
 
@@ -124,7 +122,6 @@ use crate::field::FieldElement;
 use crate::scalar::Scalar;
 
 use crate::backend::serial::curve_models::AffineNielsPoint;
-use crate::backend::serial::curve_models::CompletedPoint;
 use crate::backend::serial::curve_models::ProjectiveNielsPoint;
 use crate::backend::serial::curve_models::ProjectivePoint;
 
@@ -133,9 +130,6 @@ use crate::window::{
     LookupTableRadix128, LookupTableRadix16, LookupTableRadix256, LookupTableRadix32,
     LookupTableRadix64,
 };
-
-#[cfg(feature = "precomputed-tables")]
-use crate::traits::BasepointTable;
 
 use crate::traits::{Identity};
 
@@ -153,17 +147,9 @@ use crate::traits::{Identity};
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct CompressedEdwardsY(pub [u8; 32]);
 
-impl ConstantTimeEq for CompressedEdwardsY {
-    fn ct_eq(&self, other: &CompressedEdwardsY) -> Choice {
-        self.as_bytes().ct_eq(other.as_bytes())
-    }
-}
 
-impl Debug for CompressedEdwardsY {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "CompressedEdwardsY: {:?}", self.as_bytes())
-    }
-}
+
+
 
 impl CompressedEdwardsY {
     /// View this `CompressedEdwardsY` as an array of bytes.
@@ -228,13 +214,7 @@ mod decompress {
     }
 }
 
-impl TryFrom<&[u8]> for CompressedEdwardsY {
-    type Error = TryFromSliceError;
 
-    fn try_from(slice: &[u8]) -> Result<CompressedEdwardsY, TryFromSliceError> {
-        Self::from_slice(slice)
-    }
-}
 
 
 // ------------------------------------------------------------------------
@@ -255,14 +235,7 @@ pub(crate) struct EdwardsPoint {
 // Constructors
 // ------------------------------------------------------------------------
 
-impl Identity for CompressedEdwardsY {
-    fn identity() -> CompressedEdwardsY {
-        CompressedEdwardsY([
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
-        ])
-    }
-}
+
 
 impl CompressedEdwardsY {
     /// Construct a `CompressedEdwardsY` from a slice of bytes.
@@ -271,7 +244,7 @@ impl CompressedEdwardsY {
     ///
     /// Returns [`TryFromSliceError`] if the input `bytes` slice does not have
     /// a length of 32.
-    pub(crate) fn from_slice(bytes: &[u8]) -> Result<CompressedEdwardsY, TryFromSliceError> {
+    pub fn from_slice(bytes: &[u8]) -> Result<CompressedEdwardsY, TryFromSliceError> {
         bytes.try_into().map(CompressedEdwardsY)
     }
 }
@@ -287,30 +260,6 @@ impl Identity for EdwardsPoint {
     }
 }
 
-// ------------------------------------------------------------------------
-// Equality
-// ------------------------------------------------------------------------
-
-impl ConstantTimeEq for EdwardsPoint {
-    fn ct_eq(&self, other: &EdwardsPoint) -> Choice {
-        // We would like to check that the point (X/Z, Y/Z) is equal to
-        // the point (X'/Z', Y'/Z') without converting into affine
-        // coordinates (x, y) and (x', y'), which requires two inversions.
-        // We have that X = xZ and X' = x'Z'. Thus, x = x' is equivalent to
-        // (xZ)Z' = (x'Z')Z, and similarly for the y-coordinate.
-
-        (&self.X * &other.Z).ct_eq(&(&other.X * &self.Z))
-            & (&self.Y * &other.Z).ct_eq(&(&other.Y * &self.Z))
-    }
-}
-
-impl PartialEq for EdwardsPoint {
-    fn eq(&self, other: &EdwardsPoint) -> bool {
-        self.ct_eq(other).into()
-    }
-}
-
-impl Eq for EdwardsPoint {}
 
 // ------------------------------------------------------------------------
 // Point conversions
@@ -472,13 +421,7 @@ impl<'a> Neg for &'a EdwardsPoint {
     }
 }
 
-impl Neg for EdwardsPoint {
-    type Output = EdwardsPoint;
 
-    fn neg(self) -> EdwardsPoint {
-        -&self
-    }
-}
 
 // ------------------------------------------------------------------------
 // Scalar multiplication
@@ -560,102 +503,6 @@ macro_rules! impl_basepoint_table {
         #[derive(Clone)]
         #[repr(transparent)]
         pub(crate) struct $name(pub(crate) [$table<AffineNielsPoint>; 32]);
-
-        impl BasepointTable for $name {
-            type Point = $point;
-
-            /// The computation uses Pippeneger's algorithm, as described for the
-            /// specific case of radix-16 on page 13 of the Ed25519 paper.
-            ///
-            /// # Piggenger's Algorithm Generalised
-            ///
-            /// Write the scalar \\(a\\) in radix-\\(w\\), where \\(w\\) is a power of
-            /// 2, with coefficients in \\([\frac{-w}{2},\frac{w}{2})\\), i.e.,
-            /// $$
-            ///     a = a\_0 + a\_1 w\^1 + \cdots + a\_{x} w\^{x},
-            /// $$
-            /// with
-            /// $$
-            /// \begin{aligned}
-            ///     \frac{-w}{2} \leq a_i < \frac{w}{2}
-            ///     &&\cdots&&
-            ///     \frac{-w}{2} \leq a\_{x} \leq \frac{w}{2}
-            /// \end{aligned}
-            /// $$
-            /// and the number of additions, \\(x\\), is given by
-            /// \\(x = \lceil \frac{256}{w} \rceil\\). Then
-            /// $$
-            ///     a B = a\_0 B + a\_1 w\^1 B + \cdots + a\_{x-1} w\^{x-1} B.
-            /// $$
-            /// Grouping even and odd coefficients gives
-            /// $$
-            /// \begin{aligned}
-            ///     a B = \quad a\_0 w\^0 B +& a\_2 w\^2 B + \cdots + a\_{x-2} w\^{x-2} B    \\\\
-            ///               + a\_1 w\^1 B +& a\_3 w\^3 B + \cdots + a\_{x-1} w\^{x-1} B    \\\\
-            ///         = \quad(a\_0 w\^0 B +& a\_2 w\^2 B + \cdots + a\_{x-2} w\^{x-2} B)   \\\\
-            ///             + w(a\_1 w\^0 B +& a\_3 w\^2 B + \cdots + a\_{x-1} w\^{x-2} B).  \\\\
-            /// \end{aligned}
-            /// $$
-            /// For each \\(i = 0 \ldots 31\\), we create a lookup table of
-            /// $$
-            /// [w\^{2i} B, \ldots, \frac{w}{2}\cdot w\^{2i} B],
-            /// $$
-            /// and use it to select \\( y \cdot w\^{2i} \cdot B \\) in constant time.
-            ///
-            /// The radix-\\(w\\) representation requires that the scalar is bounded
-            /// by \\(2\^{255}\\), which is always the case.
-            ///
-            /// The above algorithm is trivially generalised to other powers-of-2 radices.
-            fn mul_base(&self, scalar: &Scalar) -> $point {
-                let a = scalar.as_radix_2w($radix);
-
-                let tables = &self.0;
-                let mut P = <$point>::identity();
-
-                for i in (0..$adds).filter(|x| x % 2 == 1) {
-                    P = (&P + &tables[i / 2].select(a[i])).as_extended();
-                }
-
-                P = P.mul_by_pow_2($radix);
-
-                for i in (0..$adds).filter(|x| x % 2 == 0) {
-                    P = (&P + &tables[i / 2].select(a[i])).as_extended();
-                }
-
-                P
-            }
-        }
-
-        impl<'a, 'b> Mul<&'b Scalar> for &'a $name {
-            type Output = $point;
-
-            /// Construct an `EdwardsPoint` from a `Scalar` \\(a\\) by
-            /// computing the multiple \\(aB\\) of this basepoint \\(B\\).
-            fn mul(self, scalar: &'b Scalar) -> $point {
-                // delegate to a private function so that its documentation appears in internal docs
-                self.mul_base(scalar)
-            }
-        }
-
-        impl<'a, 'b> Mul<&'a $name> for &'b Scalar {
-            type Output = $point;
-
-            /// Construct an `EdwardsPoint` from a `Scalar` \\(a\\) by
-            /// computing the multiple \\(aB\\) of this basepoint \\(B\\).
-            fn mul(self, basepoint_table: &'a $name) -> $point {
-                basepoint_table * self
-            }
-        }
-
-        impl Debug for $name {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                write!(f, "{:?}([\n", stringify!($name))?;
-                for i in 0..32 {
-                    write!(f, "\t{:?},\n", &self.0[i])?;
-                }
-                write!(f, "])")
-            }
-        }
     };
 } // End macro_rules! impl_basepoint_table
 
@@ -698,35 +545,5 @@ cfg_if! {
             Additions = 33
         }
 
-    }
-}
-
-
-impl EdwardsPoint {
-    /// Compute \\([2\^k] P \\) by successive doublings. Requires \\( k > 0 \\).
-    pub(crate) fn mul_by_pow_2(&self, k: u32) -> EdwardsPoint {
-        debug_assert!(k > 0);
-        let mut r: CompletedPoint;
-        let mut s = self.as_projective();
-        for _ in 0..(k - 1) {
-            r = s.double();
-            s = r.as_projective();
-        }
-        // Unroll last iteration so we can go directly as_extended()
-        s.double().as_extended()
-    }
-}
-
-// ------------------------------------------------------------------------
-// Debug traits
-// ------------------------------------------------------------------------
-
-impl Debug for EdwardsPoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(
-            f,
-            "EdwardsPoint{{\n\tX: {:?},\n\tY: {:?},\n\tZ: {:?},\n\tT: {:?}\n}}",
-            &self.X, &self.Y, &self.Z, &self.T
-        )
     }
 }

@@ -60,14 +60,7 @@ pub(crate) const L: Scalar52 = Scalar52([
 /// `L` * `LFACTOR` = -1 (mod 2^52)
 pub(crate) const LFACTOR: u64 = 0x51da312547e1b;
 
-/// `R` = R % L where R = 2^260
-pub(crate) const R: Scalar52 = Scalar52([
-    0x000f48bd6721e6ed,
-    0x0003bab5ac67e45a,
-    0x000fffffeb35e51b,
-    0x000fffffffffffff,
-    0x00000fffffffffff,
-]);
+
 
 /// `RR` = (R^2) % L where R = 2^260
 pub(crate) const RR: Scalar52 = Scalar52([

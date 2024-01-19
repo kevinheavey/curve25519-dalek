@@ -16,11 +16,3 @@ pub(crate) mod variable_base;
 
 #[allow(missing_docs)]
 pub(crate) mod vartime_double_base;
-
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub(crate) mod straus;
-
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub(crate) mod pippenger;

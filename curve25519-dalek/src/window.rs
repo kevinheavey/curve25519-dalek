@@ -152,16 +152,6 @@ cfg_if! {
 #[derive(Copy, Clone)]
 pub(crate) struct NafLookupTable5<T>(pub(crate) [T; 8]);
 
-impl<T: Copy> NafLookupTable5<T> {
-    /// Given public, odd \\( x \\) with \\( 0 < x < 2^4 \\), return \\(xA\\).
-    pub(crate) fn select(&self, x: usize) -> T {
-        debug_assert_eq!(x & 1, 1);
-        debug_assert!(x < 16);
-
-        self.0[x / 2]
-    }
-}
-
 impl<T: Debug> Debug for NafLookupTable5<T> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         write!(f, "NafLookupTable5({:?})", self.0)
