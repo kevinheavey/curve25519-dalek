@@ -35,6 +35,3 @@
 //! feature; it uses the [`serial`] backend for non-vectorized operations.
 
 pub(crate) mod serial;
-
-#[cfg(curve25519_dalek_backend = "simd")]
-pub(crate) mod vector;
