@@ -119,9 +119,6 @@ use subtle::ConditionallyNegatable;
 use subtle::ConditionallySelectable;
 use subtle::ConstantTimeEq;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use crate::constants;
 
 use crate::field::FieldElement;
@@ -272,12 +269,6 @@ impl Identity for CompressedEdwardsY {
     }
 }
 
-impl Default for CompressedEdwardsY {
-    fn default() -> CompressedEdwardsY {
-        CompressedEdwardsY::identity()
-    }
-}
-
 impl CompressedEdwardsY {
     /// Construct a `CompressedEdwardsY` from a slice of bytes.
     ///
@@ -298,36 +289,6 @@ impl Identity for EdwardsPoint {
             Z: FieldElement::ONE,
             T: FieldElement::ZERO,
         }
-    }
-}
-
-impl Default for EdwardsPoint {
-    fn default() -> EdwardsPoint {
-        EdwardsPoint::identity()
-    }
-}
-
-// ------------------------------------------------------------------------
-// Zeroize implementations for wiping points from memory
-// ------------------------------------------------------------------------
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for CompressedEdwardsY {
-    /// Reset this `CompressedEdwardsY` to the compressed form of the identity element.
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-        self.0[0] = 1;
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for EdwardsPoint {
-    /// Reset this `CompressedEdwardsPoint` to the identity element.
-    fn zeroize(&mut self) {
-        self.X.zeroize();
-        self.Y = FieldElement::ONE;
-        self.Z = FieldElement::ONE;
-        self.T.zeroize();
     }
 }
 
@@ -898,84 +859,9 @@ cfg_if! {
             Additions = 33
         }
 
-        /// A type-alias for [`EdwardsBasepointTable`] because the latter is
-        /// used as a constructor in the [`constants`] module.
-        //
-        // Same as for `LookupTableRadix16`, we have to define `EdwardsBasepointTable`
-        // first, because it's used as a constructor, and then provide a type alias for
-        // it.
-        pub(crate) type EdwardsBasepointTableRadix16 = EdwardsBasepointTable;
     }
 }
 
-#[cfg(feature = "precomputed-tables")]
-macro_rules! impl_basepoint_table_conversions {
-    (LHS = $lhs:ty, RHS = $rhs:ty) => {
-        impl<'a> From<&'a $lhs> for $rhs {
-            fn from(table: &'a $lhs) -> $rhs {
-                <$rhs>::create(&table.basepoint())
-            }
-        }
-
-        impl<'a> From<&'a $rhs> for $lhs {
-            fn from(table: &'a $rhs) -> $lhs {
-                <$lhs>::create(&table.basepoint())
-            }
-        }
-    };
-}
-
-cfg_if! {
-    if #[cfg(feature = "precomputed-tables")] {
-        // Conversions from radix 16
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix16,
-            RHS = EdwardsBasepointTableRadix32
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix16,
-            RHS = EdwardsBasepointTableRadix64
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix16,
-            RHS = EdwardsBasepointTableRadix128
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix16,
-            RHS = EdwardsBasepointTableRadix256
-        }
-
-        // Conversions from radix 32
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix32,
-            RHS = EdwardsBasepointTableRadix64
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix32,
-            RHS = EdwardsBasepointTableRadix128
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix32,
-            RHS = EdwardsBasepointTableRadix256
-        }
-
-        // Conversions from radix 64
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix64,
-            RHS = EdwardsBasepointTableRadix128
-        }
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix64,
-            RHS = EdwardsBasepointTableRadix256
-        }
-
-        // Conversions from radix 128
-        impl_basepoint_table_conversions! {
-            LHS = EdwardsBasepointTableRadix128,
-            RHS = EdwardsBasepointTableRadix256
-        }
-    }
-}
 
 impl EdwardsPoint {
     /// Compute \\([2\^k] P \\) by successive doublings. Requires \\( k > 0 \\).

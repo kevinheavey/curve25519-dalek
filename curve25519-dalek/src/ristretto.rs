@@ -184,9 +184,6 @@ use subtle::Choice;
 use subtle::ConditionallySelectable;
 use subtle::ConstantTimeEq;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 #[cfg(feature = "precomputed-tables")]
 use crate::edwards::EdwardsBasepointTable;
 use crate::edwards::EdwardsPoint;
@@ -235,12 +232,6 @@ impl CompressedRistretto {
 impl Identity for CompressedRistretto {
     fn identity() -> CompressedRistretto {
         CompressedRistretto([0u8; 32])
-    }
-}
-
-impl Default for CompressedRistretto {
-    fn default() -> CompressedRistretto {
-        CompressedRistretto::identity()
     }
 }
 
@@ -456,12 +447,6 @@ impl RistrettoPoint {
 impl Identity for RistrettoPoint {
     fn identity() -> RistrettoPoint {
         RistrettoPoint(EdwardsPoint::identity())
-    }
-}
-
-impl Default for RistrettoPoint {
-    fn default() -> RistrettoPoint {
-        RistrettoPoint::identity()
     }
 }
 
@@ -854,23 +839,5 @@ impl CofactorGroup for RistrettoPoint {
 
     fn is_torsion_free(&self) -> Choice {
         Choice::from(1)
-    }
-}
-
-// ------------------------------------------------------------------------
-// Zeroize traits
-// ------------------------------------------------------------------------
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for CompressedRistretto {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for RistrettoPoint {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
     }
 }

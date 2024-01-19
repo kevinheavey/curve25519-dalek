@@ -109,13 +109,6 @@ impl Identity for MontgomeryPoint {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl Zeroize for MontgomeryPoint {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-
 impl MontgomeryPoint {
     /// Given `self` \\( = u\_0(P) \\), and a big-endian bit representation of an integer
     /// \\(n\\), return \\( u\_0(\[n\]P) \\). This is constant time in the length of `bits`.
@@ -199,12 +192,6 @@ impl Identity for ProjectivePoint {
             U: FieldElement::ONE,
             W: FieldElement::ZERO,
         }
-    }
-}
-
-impl Default for ProjectivePoint {
-    fn default() -> ProjectivePoint {
-        ProjectivePoint::identity()
     }
 }
 

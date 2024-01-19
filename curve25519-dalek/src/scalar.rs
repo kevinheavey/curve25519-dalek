@@ -448,12 +448,6 @@ where
     }
 }
 
-impl Default for Scalar {
-    fn default() -> Scalar {
-        Scalar::ZERO
-    }
-}
-
 impl From<u8> for Scalar {
     fn from(x: u8) -> Scalar {
         let mut s_bytes = [0u8; 32];
@@ -1060,31 +1054,4 @@ fn read_le_u64_into(src: &[u8], dst: &mut [u64]) {
                 .expect("Incorrect src length, should be 8 * dst.len()"),
         );
     }
-}
-
-/// _Clamps_ the given little-endian representation of a 32-byte integer. Clamping the value puts
-/// it in the range:
-///
-/// **n ∈ 2^254 + 8\*{0, 1, 2, 3, . . ., 2^251 − 1}**
-///
-/// # Explanation of clamping
-///
-/// For Curve25519, h = 8, and multiplying by 8 is the same as a binary left-shift by 3 bits.
-/// If you take a secret scalar value between 2^251 and 2^252 – 1 and left-shift by 3 bits
-/// then you end up with a 255-bit number with the most significant bit set to 1 and
-/// the least-significant three bits set to 0.
-///
-/// The Curve25519 clamping operation takes **an arbitrary 256-bit random value** and
-/// clears the most-significant bit (making it a 255-bit number), sets the next bit, and then
-/// clears the 3 least-significant bits. In other words, it directly creates a scalar value that is
-/// in the right form and pre-multiplied by the cofactor.
-///
-/// See [here](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/) for
-/// more details.
-#[must_use]
-pub(crate) const fn clamp_integer(mut bytes: [u8; 32]) -> [u8; 32] {
-    bytes[0] &= 0b1111_1000;
-    bytes[31] &= 0b0111_1111;
-    bytes[31] |= 0b0100_0000;
-    bytes
 }

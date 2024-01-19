@@ -96,13 +96,6 @@ impl ConditionallySelectable for ExtendedPoint {
 }
 
 #[unsafe_target_feature("avx2")]
-impl Default for ExtendedPoint {
-    fn default() -> ExtendedPoint {
-        ExtendedPoint::identity()
-    }
-}
-
-#[unsafe_target_feature("avx2")]
 impl Identity for ExtendedPoint {
     fn identity() -> ExtendedPoint {
         constants::EXTENDEDPOINT_IDENTITY
@@ -211,13 +204,6 @@ impl From<ExtendedPoint> for CachedPoint {
 
         // The coefficients of the output are bounded with b < 0.007.
         CachedPoint(x)
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl Default for CachedPoint {
-    fn default() -> CachedPoint {
-        CachedPoint::identity()
     }
 }
 
