@@ -16,7 +16,4 @@ pub(crate) mod packed_simd;
 
 pub(crate) mod avx2;
 
-#[cfg(nightly)]
-pub(crate) mod ifma;
-
 pub(crate) mod scalar_mul;

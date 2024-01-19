@@ -25,9 +25,6 @@ use core::ops::{Sub, SubAssign};
 use subtle::Choice;
 use subtle::ConditionallySelectable;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 /// A `FieldElement2625` represents an element of the field
 /// \\( \mathbb Z / (2\^{255} - 19)\\).
 ///

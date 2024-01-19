@@ -15,15 +15,4 @@
     "avx2",
     conditional("avx512ifma,avx512vl", nightly)
 )]
-pub(crate) mod spec {
-
-
-
-    #[for_target_feature("avx512ifma")]
-    use crate::backend::vector::ifma::{CachedPoint, ExtendedPoint};
-
-    #[cfg(feature = "precomputed-tables")]
-    #[for_target_feature("avx512ifma")]
-    use crate::backend::vector::ifma::constants::BASEPOINT_ODD_LOOKUP_TABLE;
-
-}
+pub(crate) mod spec {}

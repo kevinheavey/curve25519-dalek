@@ -27,9 +27,6 @@ use core::ops::{Sub, SubAssign};
 use subtle::Choice;
 use subtle::ConditionallySelectable;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use fiat_crypto::curve25519_32::*;
 
 /// A `FieldElement2625` represents an element of the field
