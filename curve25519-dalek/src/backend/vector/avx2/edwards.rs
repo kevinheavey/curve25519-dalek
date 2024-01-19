@@ -35,16 +35,8 @@
 
 #![allow(non_snake_case)]
 
-use core::convert::From;
-use core::ops::{Add, Neg};
-
-use subtle::Choice;
-use subtle::ConditionallySelectable;
 
 use curve25519_dalek_derive::unsafe_target_feature;
-
-use crate::edwards;
-use crate::window::{LookupTable};
 
 
 use super::field::{FieldElement2625x4, Lanes, Shuffle};
@@ -59,36 +51,6 @@ use super::field::{FieldElement2625x4, Lanes, Shuffle};
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct ExtendedPoint(pub(super) FieldElement2625x4);
 
-#[unsafe_target_feature("avx2")]
-impl From<edwards::EdwardsPoint> for ExtendedPoint {
-    fn from(P: edwards::EdwardsPoint) -> ExtendedPoint {
-        ExtendedPoint(FieldElement2625x4::new(&P.X, &P.Y, &P.Z, &P.T))
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl From<ExtendedPoint> for edwards::EdwardsPoint {
-    fn from(P: ExtendedPoint) -> edwards::EdwardsPoint {
-        let tmp = P.0.split();
-        edwards::EdwardsPoint {
-            X: tmp[0],
-            Y: tmp[1],
-            Z: tmp[2],
-            T: tmp[3],
-        }
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl ConditionallySelectable for ExtendedPoint {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        ExtendedPoint(FieldElement2625x4::conditional_select(&a.0, &b.0, choice))
-    }
-
-    fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        self.0.conditional_assign(&other.0, choice);
-    }
-}
 
 
 #[unsafe_target_feature("avx2")]
@@ -176,100 +138,3 @@ impl ExtendedPoint {
 /// coefficients will be bounded with \\( b < 1.0 \\).
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct CachedPoint(pub(super) FieldElement2625x4);
-
-#[unsafe_target_feature("avx2")]
-impl From<ExtendedPoint> for CachedPoint {
-    fn from(P: ExtendedPoint) -> CachedPoint {
-        let mut x = P.0;
-
-        x = x.blend(x.diff_sum(), Lanes::AB);
-        // x = (Y2 - X2, Y2 + X2, Z2, T2) = (S2 S3 Z2 T2)
-
-        x = x * (121666, 121666, 2 * 121666, 2 * 121665);
-        // x = (121666*S2 121666*S3 2*121666*Z2 2*121665*T2)
-
-        x = x.blend(-x, Lanes::D);
-        // x = (121666*S2 121666*S3 2*121666*Z2 -2*121665*T2)
-
-        // The coefficients of the output are bounded with b < 0.007.
-        CachedPoint(x)
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl ConditionallySelectable for CachedPoint {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        CachedPoint(FieldElement2625x4::conditional_select(&a.0, &b.0, choice))
-    }
-
-    fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        self.0.conditional_assign(&other.0, choice);
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl Neg for &CachedPoint {
-    type Output = CachedPoint;
-    /// Lazily negate the point.
-    ///
-    /// # Warning
-    ///
-    /// Because this method does not perform a reduction, it is not
-    /// safe to repeatedly negate a point.
-    fn neg(self) -> CachedPoint {
-        let swapped = self.0.shuffle(Shuffle::BACD);
-        CachedPoint(swapped.blend(swapped.negate_lazy(), Lanes::D))
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl Add<&CachedPoint> for &ExtendedPoint {
-    type Output = ExtendedPoint;
-
-    /// Add an `ExtendedPoint` and a `CachedPoint`.
-    fn add(self, other: &CachedPoint) -> ExtendedPoint {
-        // The coefficients of an `ExtendedPoint` are reduced after
-        // every operation.  If the `CachedPoint` was negated, its
-        // coefficients grow by one bit.  So on input, `self` is
-        // bounded with `b < 0.007` and `other` is bounded with
-        // `b < 1.0`.
-
-        let mut tmp = self.0;
-
-        tmp = tmp.blend(tmp.diff_sum(), Lanes::AB);
-        // tmp = (Y1-X1 Y1+X1 Z1 T1) = (S0 S1 Z1 T1) with b < 1.6
-
-        // (tmp, other) bounded with b < (1.6, 1.0) < (2.5, 1.75).
-        tmp = &tmp * &other.0;
-        // tmp = (S0*S2' S1*S3' Z1*Z2' T1*T2') = (S8 S9 S10 S11)
-
-        tmp = tmp.shuffle(Shuffle::ABDC);
-        // tmp = (S8 S9 S11 S10)
-
-        tmp = tmp.diff_sum();
-        // tmp = (S9-S8 S9+S8 S10-S11 S10+S11) = (S12 S13 S14 S15)
-
-        let t0 = tmp.shuffle(Shuffle::ADDA);
-        // t0 = (S12 S15 S15 S12)
-        let t1 = tmp.shuffle(Shuffle::CBCB);
-        // t1 = (S14 S13 S14 S13)
-
-        // All coefficients of t0, t1 are bounded with b < 1.6.
-        // Return (S12*S14 S15*S13 S15*S14 S12*S13) = (X3 Y3 Z3 T3)
-        ExtendedPoint(&t0 * &t1)
-    }
-}
-
-
-
-#[unsafe_target_feature("avx2")]
-impl From<&edwards::EdwardsPoint> for LookupTable<CachedPoint> {
-    fn from(point: &edwards::EdwardsPoint) -> Self {
-        let P = ExtendedPoint::from(*point);
-        let mut points = [CachedPoint::from(P); 8];
-        for i in 0..7 {
-            points[i + 1] = (&P + &points[i]).into();
-        }
-        LookupTable(points)
-    }
-}

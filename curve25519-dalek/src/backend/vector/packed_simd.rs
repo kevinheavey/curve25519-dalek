@@ -75,7 +75,6 @@ macro_rules! impl_shared {
             }
         }
 
-        impl Eq for $ty {}
 
         #[unsafe_target_feature("avx2")]
         impl Add for $ty {

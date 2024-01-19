@@ -41,11 +41,11 @@ const C_LANES64: u8 = 0b00_11_00_00;
 const D_LANES64: u8 = 0b11_00_00_00;
 
 use crate::backend::vector::packed_simd::{u32x8, u64x4};
-use core::ops::{Add, Mul, Neg};
+use core::ops::{Add, Mul};
 
 use crate::backend::serial::u64::field::FieldElement51;
 use crate::backend::vector::avx2::constants::{
-    P_TIMES_16_HI, P_TIMES_16_LO, P_TIMES_2_HI, P_TIMES_2_LO,
+    P_TIMES_2_HI, P_TIMES_2_LO,
 };
 
 use curve25519_dalek_derive::unsafe_target_feature;
@@ -152,37 +152,6 @@ pub(crate) enum Shuffle {
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct FieldElement2625x4(pub(crate) [u32x8; 5]);
 
-use subtle::Choice;
-use subtle::ConditionallySelectable;
-
-#[unsafe_target_feature("avx2")]
-impl ConditionallySelectable for FieldElement2625x4 {
-    fn conditional_select(
-        a: &FieldElement2625x4,
-        b: &FieldElement2625x4,
-        choice: Choice,
-    ) -> FieldElement2625x4 {
-        let mask = (-(choice.unwrap_u8() as i32)) as u32;
-        let mask_vec = u32x8::splat(mask);
-        FieldElement2625x4([
-            a.0[0] ^ (mask_vec & (a.0[0] ^ b.0[0])),
-            a.0[1] ^ (mask_vec & (a.0[1] ^ b.0[1])),
-            a.0[2] ^ (mask_vec & (a.0[2] ^ b.0[2])),
-            a.0[3] ^ (mask_vec & (a.0[3] ^ b.0[3])),
-            a.0[4] ^ (mask_vec & (a.0[4] ^ b.0[4])),
-        ])
-    }
-
-    fn conditional_assign(&mut self, other: &FieldElement2625x4, choice: Choice) {
-        let mask = (-(choice.unwrap_u8() as i32)) as u32;
-        let mask_vec = u32x8::splat(mask);
-        self.0[0] ^= mask_vec & (self.0[0] ^ other.0[0]);
-        self.0[1] ^= mask_vec & (self.0[1] ^ other.0[1]);
-        self.0[2] ^= mask_vec & (self.0[2] ^ other.0[2]);
-        self.0[3] ^= mask_vec & (self.0[3] ^ other.0[3]);
-        self.0[4] ^= mask_vec & (self.0[4] ^ other.0[4]);
-    }
-}
 
 #[unsafe_target_feature("avx2")]
 impl FieldElement2625x4 {
@@ -681,34 +650,6 @@ impl FieldElement2625x4 {
     }
 }
 
-#[unsafe_target_feature("avx2")]
-impl Neg for FieldElement2625x4 {
-    type Output = FieldElement2625x4;
-
-    /// Negate this field element, performing a reduction.
-    ///
-    /// If the coefficients are known to be small, use `negate_lazy`
-    /// to avoid performing a reduction.
-    ///
-    /// # Preconditions
-    ///
-    /// The coefficients of `self` must be bounded with \\( b < 4.0 \\).
-    ///
-    /// # Postconditions
-    ///
-    /// The coefficients of the result are bounded with \\( b < 0.0002 \\).
-    #[inline]
-    fn neg(self) -> FieldElement2625x4 {
-        FieldElement2625x4([
-            P_TIMES_16_LO - self.0[0],
-            P_TIMES_16_HI - self.0[1],
-            P_TIMES_16_HI - self.0[2],
-            P_TIMES_16_HI - self.0[3],
-            P_TIMES_16_HI - self.0[4],
-        ])
-        .reduce()
-    }
-}
 
 #[unsafe_target_feature("avx2")]
 impl Add<FieldElement2625x4> for FieldElement2625x4 {

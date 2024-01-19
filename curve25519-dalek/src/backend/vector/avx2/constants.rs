@@ -43,32 +43,3 @@ pub(crate) static P_TIMES_2_HI: u32x8 = u32x8::new_const(
     33554431 << 1,
 );
 
-/// The low limbs of (16p, 16p, 16p, 16p), so that
-/// ```ascii,no_run
-/// (16p, 16p, 16p, 16p) = [P_TIMES_16_LO, P_TIMES_16_HI, P_TIMES_16_HI, P_TIMES_16_HI, P_TIMES_16_HI]
-/// ```
-pub(crate) static P_TIMES_16_LO: u32x8 = u32x8::new_const(
-    67108845 << 4,
-    67108845 << 4,
-    33554431 << 4,
-    33554431 << 4,
-    67108845 << 4,
-    67108845 << 4,
-    33554431 << 4,
-    33554431 << 4,
-);
-
-/// The high limbs of (16p, 16p, 16p, 16p), so that
-/// ```ascii,no_run
-/// (16p, 16p, 16p, 16p) = [P_TIMES_16_LO, P_TIMES_16_HI, P_TIMES_16_HI, P_TIMES_16_HI, P_TIMES_16_HI]
-/// ```
-pub(crate) static P_TIMES_16_HI: u32x8 = u32x8::new_const(
-    67108863 << 4,
-    67108863 << 4,
-    33554431 << 4,
-    33554431 << 4,
-    67108863 << 4,
-    67108863 << 4,
-    33554431 << 4,
-    33554431 << 4,
-);
