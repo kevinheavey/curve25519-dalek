@@ -67,8 +67,6 @@ pub mod edwards;
 // Useful constants, like the Ed25519 basepoint
 pub(crate) mod constants;
 
-// External (and internal) traits.
-pub(crate) mod traits;
 
 //------------------------------------------------------------------------
 // curve25519-dalek internal modules
