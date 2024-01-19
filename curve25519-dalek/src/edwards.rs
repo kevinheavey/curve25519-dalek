@@ -97,18 +97,7 @@ use core::array::TryFromSliceError;
 
 use cfg_if::cfg_if;
 
-#[cfg(feature = "digest")]
-use digest::{generic_array::typenum::U64, Digest};
-
-#[cfg(feature = "group")]
-use {
-    group::{cofactor::CofactorGroup, prime::PrimeGroup, GroupEncoding},
-    rand_core::RngCore,
-    subtle::CtOption,
-};
-
 use subtle::Choice;
-use subtle::ConditionallyNegatable;
 
 use crate::constants;
 
@@ -145,22 +134,9 @@ impl CompressedEdwardsY {
         &self.0
     }
 
-    /// Attempt to decompress to an `EdwardsPoint`.
-    ///
-    /// Returns `None` if the input is not the \\(y\\)-coordinate of a
-    /// curve point.
-    fn decompress(&self) -> Option<EdwardsPoint> {
-        let (is_valid_y_coord, X, Y, Z) = decompress::step_1(self);
-
-        if is_valid_y_coord.into() {
-            Some(decompress::step_2(self, X, Y, Z))
-        } else {
-            None
-        }
-    }
-
     pub fn is_curve_point(&self) -> bool {
-        self.decompress().is_some()
+        let is_valid_y_coord = decompress::step_1(self).0;
+        is_valid_y_coord.into()
     }
 }
 
@@ -179,26 +155,6 @@ mod decompress {
         let (is_valid_y_coord, X) = FieldElement::sqrt_ratio_i(&u, &v);
 
         (is_valid_y_coord, X, Y, Z)
-    }
-
-    #[rustfmt::skip]
-    pub(super) fn step_2(
-        repr: &CompressedEdwardsY,
-        mut X: FieldElement,
-        Y: FieldElement,
-        Z: FieldElement,
-    ) -> EdwardsPoint {
-         // FieldElement::sqrt_ratio_i always returns the nonnegative square root,
-         // so we negate according to the supplied sign bit.
-        let compressed_sign_bit = Choice::from(repr.as_bytes()[31] >> 7);
-        X.conditional_negate(compressed_sign_bit);
-
-        EdwardsPoint {
-            X,
-            Y,
-            Z,
-            T: &X * &Y,
-        }
     }
 }
 
