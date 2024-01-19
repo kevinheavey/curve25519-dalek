@@ -22,9 +22,3 @@ pub(crate) mod variable_base;
 
 #[cfg(feature = "alloc")]
 pub(crate) mod straus;
-
-#[cfg(feature = "alloc")]
-pub(crate) mod precomputed_straus;
-
-#[cfg(feature = "alloc")]
-pub(crate) mod pippenger;

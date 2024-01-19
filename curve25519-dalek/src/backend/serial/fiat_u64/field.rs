@@ -131,42 +131,6 @@ impl<'a> Neg for &'a FieldElement51 {
     }
 }
 
-impl ConditionallySelectable for FieldElement51 {
-    fn conditional_select(
-        a: &FieldElement51,
-        b: &FieldElement51,
-        choice: Choice,
-    ) -> FieldElement51 {
-        let mut output = fiat_25519_tight_field_element([0u64; 5]);
-        fiat_25519_selectznz(
-            &mut output.0,
-            choice.unwrap_u8() as fiat_25519_u1,
-            &(a.0).0,
-            &(b.0).0,
-        );
-        FieldElement51(output)
-    }
-
-    fn conditional_swap(a: &mut FieldElement51, b: &mut FieldElement51, choice: Choice) {
-        u64::conditional_swap(&mut a.0[0], &mut b.0[0], choice);
-        u64::conditional_swap(&mut a.0[1], &mut b.0[1], choice);
-        u64::conditional_swap(&mut a.0[2], &mut b.0[2], choice);
-        u64::conditional_swap(&mut a.0[3], &mut b.0[3], choice);
-        u64::conditional_swap(&mut a.0[4], &mut b.0[4], choice);
-    }
-
-    fn conditional_assign(&mut self, rhs: &FieldElement51, choice: Choice) {
-        let mut output = [0u64; 5];
-        let choicebit = choice.unwrap_u8() as fiat_25519_u1;
-        fiat_25519_cmovznz_u64(&mut output[0], choicebit, self.0[0], rhs.0[0]);
-        fiat_25519_cmovznz_u64(&mut output[1], choicebit, self.0[1], rhs.0[1]);
-        fiat_25519_cmovznz_u64(&mut output[2], choicebit, self.0[2], rhs.0[2]);
-        fiat_25519_cmovznz_u64(&mut output[3], choicebit, self.0[3], rhs.0[3]);
-        fiat_25519_cmovznz_u64(&mut output[4], choicebit, self.0[4], rhs.0[4]);
-        *self = FieldElement51::from_limbs(output);
-    }
-}
-
 impl FieldElement51 {
     pub(crate) const fn from_limbs(limbs: [u64; 5]) -> FieldElement51 {
         FieldElement51(fiat_25519_tight_field_element(limbs))
