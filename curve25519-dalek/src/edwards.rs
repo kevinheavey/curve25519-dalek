@@ -143,8 +143,6 @@ use crate::traits::{Identity};
 
 #[cfg(feature = "alloc")]
 use crate::traits::MultiscalarMul;
-#[cfg(feature = "alloc")]
-use crate::traits::{VartimeMultiscalarMul, VartimePrecomputedMultiscalarMul};
 
 // ------------------------------------------------------------------------
 // Compressed points
@@ -592,77 +590,6 @@ impl MultiscalarMul for EdwardsPoint {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl VartimeMultiscalarMul for EdwardsPoint {
-    type Point = EdwardsPoint;
-
-    fn optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
-    where
-        I: IntoIterator,
-        I::Item: Borrow<Scalar>,
-        J: IntoIterator<Item = Option<EdwardsPoint>>,
-    {
-        // Sanity-check lengths of input iterators
-        let mut scalars = scalars.into_iter();
-        let mut points = points.into_iter();
-
-        // Lower and upper bounds on iterators
-        let (s_lo, s_hi) = scalars.by_ref().size_hint();
-        let (p_lo, p_hi) = points.by_ref().size_hint();
-
-        // They should all be equal
-        assert_eq!(s_lo, p_lo);
-        assert_eq!(s_hi, Some(s_lo));
-        assert_eq!(p_hi, Some(p_lo));
-
-        // Now we know there's a single size.
-        // Use this as the hint to decide which algorithm to use.
-        let size = s_lo;
-
-        if size < 190 {
-            crate::backend::straus_optional_multiscalar_mul(scalars, points)
-        } else {
-            crate::backend::pippenger_optional_multiscalar_mul(scalars, points)
-        }
-    }
-}
-
-/// Precomputation for variable-time multiscalar multiplication with `EdwardsPoint`s.
-// This wraps the inner implementation in a facade type so that we can
-// decouple stability of the inner type from the stability of the
-// outer type.
-#[cfg(feature = "alloc")]
-pub(crate) struct VartimeEdwardsPrecomputation(crate::backend::VartimePrecomputedStraus);
-
-#[cfg(feature = "alloc")]
-impl VartimePrecomputedMultiscalarMul for VartimeEdwardsPrecomputation {
-    type Point = EdwardsPoint;
-
-    fn new<I>(static_points: I) -> Self
-    where
-        I: IntoIterator,
-        I::Item: Borrow<Self::Point>,
-    {
-        Self(crate::backend::VartimePrecomputedStraus::new(static_points))
-    }
-
-    fn optional_mixed_multiscalar_mul<I, J, K>(
-        &self,
-        static_scalars: I,
-        dynamic_scalars: J,
-        dynamic_points: K,
-    ) -> Option<Self::Point>
-    where
-        I: IntoIterator,
-        I::Item: Borrow<Scalar>,
-        J: IntoIterator,
-        J::Item: Borrow<Scalar>,
-        K: IntoIterator<Item = Option<Self::Point>>,
-    {
-        self.0
-            .optional_mixed_multiscalar_mul(static_scalars, dynamic_scalars, dynamic_points)
-    }
-}
 
 #[cfg(feature = "precomputed-tables")]
 macro_rules! impl_basepoint_table {

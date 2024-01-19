@@ -28,9 +28,6 @@ use crate::backend::serial::curve_models::AffineNielsPoint;
 use crate::backend::serial::curve_models::ProjectiveNielsPoint;
 use crate::edwards::EdwardsPoint;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 macro_rules! impl_lookup_table {
     (Name = $name:ident, Size = $size:expr, SizeNeg = $neg:expr, SizeRange = $range:expr, ConversionRange = $conv_range:expr) => {
         /// A lookup table of precomputed multiples of a point \\(P\\), used to
@@ -76,12 +73,6 @@ macro_rules! impl_lookup_table {
             }
         }
 
-        impl<T: Copy + Default> Default for $name<T> {
-            fn default() -> $name<T> {
-                $name([T::default(); $size])
-            }
-        }
-
         impl<T: Debug> Debug for $name<T> {
             fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                 write!(f, "{:?}(", stringify!($name))?;
@@ -101,27 +92,6 @@ macro_rules! impl_lookup_table {
                     points[j + 1] = (P + &points[j]).as_extended().as_projective_niels();
                 }
                 $name(points)
-            }
-        }
-
-        impl<'a> From<&'a EdwardsPoint> for $name<AffineNielsPoint> {
-            fn from(P: &'a EdwardsPoint) -> Self {
-                let mut points = [P.as_affine_niels(); $size];
-                // XXX batch inversion would be good if perf mattered here
-                for j in $conv_range {
-                    points[j + 1] = (P + &points[j]).as_extended().as_affine_niels()
-                }
-                $name(points)
-            }
-        }
-
-        #[cfg(feature = "zeroize")]
-        impl<T> Zeroize for $name<T>
-        where
-            T: Copy + Default + Zeroize,
-        {
-            fn zeroize(&mut self) {
-                self.0.iter_mut().zeroize();
             }
         }
     };

@@ -74,96 +74,6 @@ fn get_selected_backend() -> BackendKind {
     BackendKind::Serial
 }
 
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub(crate) fn pippenger_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
-where
-    I: IntoIterator,
-    I::Item: core::borrow::Borrow<Scalar>,
-    J: IntoIterator<Item = Option<EdwardsPoint>>,
-{
-    use crate::traits::VartimeMultiscalarMul;
-
-    match get_selected_backend() {
-        #[cfg(curve25519_dalek_backend = "simd")]
-        BackendKind::Avx2 =>
-            self::vector::scalar_mul::pippenger::spec_avx2::Pippenger::optional_multiscalar_mul::<I, J>(scalars, points),
-        #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-        BackendKind::Avx512 =>
-            self::vector::scalar_mul::pippenger::spec_avx512ifma_avx512vl::Pippenger::optional_multiscalar_mul::<I, J>(scalars, points),
-        BackendKind::Serial =>
-            self::serial::scalar_mul::pippenger::Pippenger::optional_multiscalar_mul::<I, J>(scalars, points),
-    }
-}
-
-#[cfg(feature = "alloc")]
-pub(crate) enum VartimePrecomputedStraus {
-    #[cfg(curve25519_dalek_backend = "simd")]
-    Avx2(self::vector::scalar_mul::precomputed_straus::spec_avx2::VartimePrecomputedStraus),
-    #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-    Avx512ifma(
-        self::vector::scalar_mul::precomputed_straus::spec_avx512ifma_avx512vl::VartimePrecomputedStraus,
-    ),
-    Scalar(self::serial::scalar_mul::precomputed_straus::VartimePrecomputedStraus),
-}
-
-#[cfg(feature = "alloc")]
-impl VartimePrecomputedStraus {
-    pub(crate) fn new<I>(static_points: I) -> Self
-    where
-        I: IntoIterator,
-        I::Item: core::borrow::Borrow<EdwardsPoint>,
-    {
-        use crate::traits::VartimePrecomputedMultiscalarMul;
-
-        match get_selected_backend() {
-            #[cfg(curve25519_dalek_backend = "simd")]
-            BackendKind::Avx2 =>
-                VartimePrecomputedStraus::Avx2(self::vector::scalar_mul::precomputed_straus::spec_avx2::VartimePrecomputedStraus::new(static_points)),
-            #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-            BackendKind::Avx512 =>
-                VartimePrecomputedStraus::Avx512ifma(self::vector::scalar_mul::precomputed_straus::spec_avx512ifma_avx512vl::VartimePrecomputedStraus::new(static_points)),
-            BackendKind::Serial =>
-                VartimePrecomputedStraus::Scalar(self::serial::scalar_mul::precomputed_straus::VartimePrecomputedStraus::new(static_points))
-        }
-    }
-
-    pub(crate) fn optional_mixed_multiscalar_mul<I, J, K>(
-        &self,
-        static_scalars: I,
-        dynamic_scalars: J,
-        dynamic_points: K,
-    ) -> Option<EdwardsPoint>
-    where
-        I: IntoIterator,
-        I::Item: core::borrow::Borrow<Scalar>,
-        J: IntoIterator,
-        J::Item: core::borrow::Borrow<Scalar>,
-        K: IntoIterator<Item = Option<EdwardsPoint>>,
-    {
-        use crate::traits::VartimePrecomputedMultiscalarMul;
-
-        match self {
-            #[cfg(curve25519_dalek_backend = "simd")]
-            VartimePrecomputedStraus::Avx2(inner) => inner.optional_mixed_multiscalar_mul(
-                static_scalars,
-                dynamic_scalars,
-                dynamic_points,
-            ),
-            #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-            VartimePrecomputedStraus::Avx512ifma(inner) => inner.optional_mixed_multiscalar_mul(
-                static_scalars,
-                dynamic_scalars,
-                dynamic_points,
-            ),
-            VartimePrecomputedStraus::Scalar(inner) => inner.optional_mixed_multiscalar_mul(
-                static_scalars,
-                dynamic_scalars,
-                dynamic_points,
-            ),
-        }
-    }
-}
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
@@ -192,38 +102,6 @@ where
         }
         BackendKind::Serial => {
             self::serial::scalar_mul::straus::Straus::multiscalar_mul::<I, J>(scalars, points)
-        }
-    }
-}
-
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub(crate) fn straus_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
-where
-    I: IntoIterator,
-    I::Item: core::borrow::Borrow<Scalar>,
-    J: IntoIterator<Item = Option<EdwardsPoint>>,
-{
-    use crate::traits::VartimeMultiscalarMul;
-
-    match get_selected_backend() {
-        #[cfg(curve25519_dalek_backend = "simd")]
-        BackendKind::Avx2 => {
-            self::vector::scalar_mul::straus::spec_avx2::Straus::optional_multiscalar_mul::<I, J>(
-                scalars, points,
-            )
-        }
-        #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-        BackendKind::Avx512 => {
-            self::vector::scalar_mul::straus::spec_avx512ifma_avx512vl::Straus::optional_multiscalar_mul::<
-                I,
-                J,
-            >(scalars, points)
-        }
-        BackendKind::Serial => {
-            self::serial::scalar_mul::straus::Straus::optional_multiscalar_mul::<I, J>(
-                scalars, points,
-            )
         }
     }
 }
