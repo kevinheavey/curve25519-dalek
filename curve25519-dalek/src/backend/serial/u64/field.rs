@@ -17,10 +17,6 @@ use core::ops::{Add, AddAssign};
 use core::ops::{Mul};
 use core::ops::{Sub};
 
-use subtle::Choice;
-use subtle::ConditionallySelectable;
-
-
 /// A `FieldElement51` represents an element of the field
 /// \\( \mathbb Z / (2\^{255} - 19)\\).
 ///
@@ -195,37 +191,6 @@ impl<'a> Neg for &'a FieldElement51 {
     }
 }
 
-impl ConditionallySelectable for FieldElement51 {
-    fn conditional_select(
-        a: &FieldElement51,
-        b: &FieldElement51,
-        choice: Choice,
-    ) -> FieldElement51 {
-        FieldElement51([
-            u64::conditional_select(&a.0[0], &b.0[0], choice),
-            u64::conditional_select(&a.0[1], &b.0[1], choice),
-            u64::conditional_select(&a.0[2], &b.0[2], choice),
-            u64::conditional_select(&a.0[3], &b.0[3], choice),
-            u64::conditional_select(&a.0[4], &b.0[4], choice),
-        ])
-    }
-
-    fn conditional_swap(a: &mut FieldElement51, b: &mut FieldElement51, choice: Choice) {
-        u64::conditional_swap(&mut a.0[0], &mut b.0[0], choice);
-        u64::conditional_swap(&mut a.0[1], &mut b.0[1], choice);
-        u64::conditional_swap(&mut a.0[2], &mut b.0[2], choice);
-        u64::conditional_swap(&mut a.0[3], &mut b.0[3], choice);
-        u64::conditional_swap(&mut a.0[4], &mut b.0[4], choice);
-    }
-
-    fn conditional_assign(&mut self, other: &FieldElement51, choice: Choice) {
-        self.0[0].conditional_assign(&other.0[0], choice);
-        self.0[1].conditional_assign(&other.0[1], choice);
-        self.0[2].conditional_assign(&other.0[2], choice);
-        self.0[3].conditional_assign(&other.0[3], choice);
-        self.0[4].conditional_assign(&other.0[4], choice);
-    }
-}
 
 impl FieldElement51 {
     pub(crate) const fn from_limbs(limbs: [u64; 5]) -> FieldElement51 {

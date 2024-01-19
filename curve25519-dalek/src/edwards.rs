@@ -125,7 +125,7 @@ impl CompressedEdwardsY {
     }
 
     pub fn is_curve_point(&self) -> bool {
-        let is_valid_y_coord = decompress::step_1(self).0;
+        let is_valid_y_coord = decompress::step_1(self);
         is_valid_y_coord.into()
     }
 }
@@ -136,15 +136,13 @@ mod decompress {
     #[rustfmt::skip] // keep alignment of explanatory comments
     pub(super) fn step_1(
         repr: &CompressedEdwardsY,
-    ) -> (Choice, FieldElement, FieldElement, FieldElement) {
+    ) -> Choice {
         let Y = FieldElement::from_bytes(repr.as_bytes());
         let Z = FieldElement::ONE;
         let YY = Y.square();
         let u = &YY - &Z;                            // u =  y²-1
         let v = &(&YY * &constants::EDWARDS_D) + &Z; // v = dy²+1
-        let (is_valid_y_coord, X) = FieldElement::sqrt_ratio_i(&u, &v);
-
-        (is_valid_y_coord, X, Y, Z)
+        FieldElement::was_nonzero_square(&u, &v)
     }
 }
 

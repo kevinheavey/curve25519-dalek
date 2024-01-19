@@ -30,12 +30,9 @@ use core::cmp::{Eq, PartialEq};
 use cfg_if::cfg_if;
 
 use subtle::Choice;
-use subtle::ConditionallyNegatable;
-use subtle::ConditionallySelectable;
 use subtle::ConstantTimeEq;
 
 use crate::backend;
-use crate::constants;
 
 cfg_if! {
     if #[cfg(curve25519_dalek_backend = "fiat")] {
@@ -93,18 +90,6 @@ impl ConstantTimeEq for FieldElement {
 }
 
 impl FieldElement {
-    /// Determine if this `FieldElement` is negative, in the sense
-    /// used in the ed25519 paper: `x` is negative if the low bit is
-    /// set.
-    ///
-    /// # Return
-    ///
-    /// If negative, return `Choice(1)`.  Otherwise, return `Choice(0)`.
-    pub(crate) fn is_negative(&self) -> Choice {
-        let bytes = self.as_bytes();
-        (bytes[0] & 1).into()
-    }
-
     /// Compute (self^(2^250-1), self^11), used as a helper function
     /// within invert() and pow22523().
     #[rustfmt::skip] // keep alignment of explanatory comments
@@ -160,19 +145,7 @@ impl FieldElement {
         t21
     }
 
-    /// Given `FieldElements` `u` and `v`, compute either `sqrt(u/v)`
-    /// or `sqrt(i*u/v)` in constant time.
-    ///
-    /// This function always returns the nonnegative square root.
-    ///
-    /// # Return
-    ///
-    /// - `(Choice(1), +sqrt(u/v))  ` if `v` is nonzero and `u/v` is square;
-    /// - `(Choice(1), zero)        ` if `u` is zero;
-    /// - `(Choice(0), zero)        ` if `v` is zero and `u` is nonzero;
-    /// - `(Choice(0), +sqrt(i*u/v))` if `u/v` is nonsquare (so `i*u/v` is square).
-    ///
-    pub(crate) fn sqrt_ratio_i(u: &FieldElement, v: &FieldElement) -> (Choice, FieldElement) {
+    pub(crate) fn was_nonzero_square(u: &FieldElement, v: &FieldElement) -> Choice {
         // Using the same trick as in ed25519 decoding, we merge the
         // inversion, the square root, and the square test as follows.
         //
@@ -199,24 +172,10 @@ impl FieldElement {
 
         let v3 = &v.square() * v;
         let v7 = &v3.square() * v;
-        let mut r = &(u * &v3) * &(u * &v7).pow_p58();
+        let r = &(u * &v3) * &(u * &v7).pow_p58();
         let check = v * &r.square();
-
-        let i = &constants::SQRT_M1;
-
         let correct_sign_sqrt = check.ct_eq(u);
         let flipped_sign_sqrt = check.ct_eq(&(-u));
-        let flipped_sign_sqrt_i = check.ct_eq(&(&(-u) * i));
-
-        let r_prime = &constants::SQRT_M1 * &r;
-        r.conditional_assign(&r_prime, flipped_sign_sqrt | flipped_sign_sqrt_i);
-
-        // Choose the nonnegative square root.
-        let r_is_negative = r.is_negative();
-        r.conditional_negate(r_is_negative);
-
-        let was_nonzero_square = correct_sign_sqrt | flipped_sign_sqrt;
-
-        (was_nonzero_square, r)
+        correct_sign_sqrt | flipped_sign_sqrt
     }
 }

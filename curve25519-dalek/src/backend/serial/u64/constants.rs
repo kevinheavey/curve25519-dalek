@@ -29,15 +29,6 @@ pub(crate) const EDWARDS_D: FieldElement51 = FieldElement51::from_limbs([
     1442794654840575,
 ]);
 
-/// Precomputed value of one of the square roots of -1 (mod p)
-pub(crate) const SQRT_M1: FieldElement51 = FieldElement51::from_limbs([
-    1718705420411056,
-    234908883556509,
-    2233514472574048,
-    2117202627021982,
-    765476049583133,
-]);
-
 
 /// `L` is the order of base point, i.e. 2^252 + 27742317777372353535851937790883648493
 pub(crate) const L: Scalar52 = Scalar52([
