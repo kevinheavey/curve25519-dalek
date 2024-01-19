@@ -53,12 +53,6 @@ pub(crate) trait BasepointTable {
     /// The type of point contained within this table.
     type Point;
 
-    /// Generate a new precomputed basepoint table from the given basepoint.
-    fn create(basepoint: &Self::Point) -> Self;
-
-    /// Retrieve the original basepoint from this table.
-    fn basepoint(&self) -> Self::Point;
-
     /// Multiply a `scalar` by this precomputed basepoint table, in constant time.
     fn mul_base(&self, scalar: &Scalar) -> Self::Point;
 }

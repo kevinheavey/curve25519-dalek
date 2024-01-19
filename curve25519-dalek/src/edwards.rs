@@ -705,26 +705,6 @@ macro_rules! impl_basepoint_table {
         impl BasepointTable for $name {
             type Point = $point;
 
-            /// Create a table of precomputed multiples of `basepoint`.
-            fn create(basepoint: &$point) -> $name {
-                // XXX use init_with
-                let mut table = $name([$table::default(); 32]);
-                let mut P = *basepoint;
-                for i in 0..32 {
-                    // P = (2w)^i * B
-                    table.0[i] = $table::from(&P);
-                    P = P.mul_by_pow_2($radix + $radix);
-                }
-                table
-            }
-
-            /// Get the basepoint for this table as an `EdwardsPoint`.
-            fn basepoint(&self) -> $point {
-                // self.0[0].select(1) = 1*(16^2)^0*B
-                // but as an `AffineNielsPoint`, so add identity to convert to extended.
-                (&<$point>::identity() + &self.0[0].select(1)).as_extended()
-            }
-
             /// The computation uses Pippeneger's algorithm, as described for the
             /// specific case of radix-16 on page 13 of the Ed25519 paper.
             ///
