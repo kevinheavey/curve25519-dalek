@@ -95,21 +95,11 @@
 
 use core::array::TryFromSliceError;
 
-use cfg_if::cfg_if;
-
 use subtle::Choice;
 
 use crate::constants;
 
 use crate::field::FieldElement;
-
-use crate::backend::serial::curve_models::AffineNielsPoint;
-
-#[cfg(feature = "precomputed-tables")]
-use crate::window::{
-    LookupTableRadix128, LookupTableRadix16, LookupTableRadix256, LookupTableRadix32,
-    LookupTableRadix64,
-};
 
 
 // ------------------------------------------------------------------------
@@ -159,22 +149,6 @@ mod decompress {
 }
 
 
-
-
-// ------------------------------------------------------------------------
-// Internal point representations
-// ------------------------------------------------------------------------
-
-/// An `EdwardsPoint` represents a point on the Edwards form of Curve25519.
-#[derive(Copy, Clone)]
-#[allow(missing_docs)]
-pub(crate) struct EdwardsPoint {
-    pub(crate) X: FieldElement,
-    pub(crate) Y: FieldElement,
-    pub(crate) Z: FieldElement,
-    pub(crate) T: FieldElement,
-}
-
 // ------------------------------------------------------------------------
 // Constructors
 // ------------------------------------------------------------------------
@@ -190,87 +164,5 @@ impl CompressedEdwardsY {
     /// a length of 32.
     pub fn from_slice(bytes: &[u8]) -> Result<CompressedEdwardsY, TryFromSliceError> {
         bytes.try_into().map(CompressedEdwardsY)
-    }
-}
-
-#[cfg(feature = "precomputed-tables")]
-macro_rules! impl_basepoint_table {
-    (Name = $name:ident, LookupTable = $table:ident, Point = $point:ty, Radix = $radix:expr, Additions = $adds:expr) => {
-        /// A precomputed table of multiples of a basepoint, for accelerating
-        /// fixed-base scalar multiplication.  One table, for the Ed25519
-        /// basepoint, is provided in the [`constants`] module.
-        ///
-        /// The basepoint tables are reasonably large, so they should probably be boxed.
-        ///
-        /// The sizes for the tables and the number of additions required for one scalar
-        /// multiplication are as follows:
-        ///
-        /// * [`EdwardsBasepointTableRadix16`]: 30KB, 64A
-        ///   (this is the default size, and is used for
-        ///   [`constants::ED25519_BASEPOINT_TABLE`])
-        /// * [`EdwardsBasepointTableRadix64`]: 120KB, 43A
-        /// * [`EdwardsBasepointTableRadix128`]: 240KB, 37A
-        /// * [`EdwardsBasepointTableRadix256`]: 480KB, 33A
-        ///
-        /// # Why 33 additions for radix-256?
-        ///
-        /// Normally, the radix-256 tables would allow for only 32 additions per scalar
-        /// multiplication.  However, due to the fact that standardised definitions of
-        /// legacy protocols—such as x25519—require allowing unreduced 255-bit scalars
-        /// invariants, when converting such an unreduced scalar's representation to
-        /// radix-\\(2^{8}\\), we cannot guarantee the carry bit will fit in the last
-        /// coefficient (the coefficients are `i8`s).  When, \\(w\\), the power-of-2 of
-        /// the radix, is \\(w < 8\\), we can fold the final carry onto the last
-        /// coefficient, \\(d\\), because \\(d < 2^{w/2}\\), so
-        /// $$
-        ///     d + carry \cdot 2^{w} = d + 1 \cdot 2^{w} < 2^{w+1} < 2^{8}
-        /// $$
-        /// When \\(w = 8\\), we can't fit \\(carry \cdot 2^{w}\\) into an `i8`, so we
-        /// add the carry bit onto an additional coefficient.
-        #[derive(Clone)]
-        #[repr(transparent)]
-        pub(crate) struct $name(pub(crate) [$table<AffineNielsPoint>; 32]);
-    };
-} // End macro_rules! impl_basepoint_table
-
-// The number of additions required is ceil(256/w) where w is the radix representation.
-cfg_if! {
-    if #[cfg(feature = "precomputed-tables")] {
-        impl_basepoint_table! {
-            Name = EdwardsBasepointTable,
-            LookupTable = LookupTableRadix16,
-            Point = EdwardsPoint,
-            Radix = 4,
-            Additions = 64
-        }
-        impl_basepoint_table! {
-            Name = EdwardsBasepointTableRadix32,
-            LookupTable = LookupTableRadix32,
-            Point = EdwardsPoint,
-            Radix = 5,
-            Additions = 52
-        }
-        impl_basepoint_table! {
-            Name = EdwardsBasepointTableRadix64,
-            LookupTable = LookupTableRadix64,
-            Point = EdwardsPoint,
-            Radix = 6,
-            Additions = 43
-        }
-        impl_basepoint_table! {
-            Name = EdwardsBasepointTableRadix128,
-            LookupTable = LookupTableRadix128,
-            Point = EdwardsPoint,
-            Radix = 7,
-            Additions = 37
-        }
-        impl_basepoint_table! {
-            Name = EdwardsBasepointTableRadix256,
-            LookupTable = LookupTableRadix256,
-            Point = EdwardsPoint,
-            Radix = 8,
-            Additions = 33
-        }
-
     }
 }
