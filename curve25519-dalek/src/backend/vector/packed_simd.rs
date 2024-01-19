@@ -28,13 +28,7 @@ macro_rules! impl_shared {
         #[repr(transparent)]
         pub(crate) struct $ty(core::arch::x86_64::__m256i);
 
-        #[unsafe_target_feature("avx2")]
-        impl From<$ty> for core::arch::x86_64::__m256i {
-            #[inline]
-            fn from(value: $ty) -> core::arch::x86_64::__m256i {
-                value.0
-            }
-        }
+
 
         #[unsafe_target_feature("avx2")]
         impl From<core::arch::x86_64::__m256i> for $ty {
