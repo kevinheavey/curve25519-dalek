@@ -111,7 +111,7 @@ fn repack_pair(x: u32x8, y: u32x8) -> u32x8 {
 /// `FieldElement2625x4`.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, Debug)]
-pub enum Lanes {
+pub(crate) enum Lanes {
     C,
     D,
     AB,
@@ -129,7 +129,7 @@ pub enum Lanes {
 /// D) \\) into \\( (B, A, D, C) \\).
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, Debug)]
-pub enum Shuffle {
+pub(crate) enum Shuffle {
     AAAA,
     BBBB,
     CACA,

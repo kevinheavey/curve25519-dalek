@@ -68,9 +68,6 @@ pub(crate) mod scalar;
 // Point operations on the Edwards form of Curve25519
 pub mod edwards;
 
-// Group operations on the Ristretto group
-pub(crate) mod ristretto;
-
 // Useful constants, like the Ed25519 basepoint
 pub(crate) mod constants;
 
