@@ -38,54 +38,9 @@ const D_LANES64: u8 = 0b11_00_00_00;
 use crate::backend::vector::packed_simd::u32x8;
 
 use crate::backend::serial::u64::field::FieldElement51;
-use crate::backend::vector::avx2::constants::{
-    P_TIMES_2_HI, P_TIMES_2_LO,
-};
 
 use curve25519_dalek_derive::unsafe_target_feature;
 
-
-
-
-
-/// The `Lanes` enum represents a subset of the lanes `A,B,C,D` of a
-/// `FieldElement2625x4`.
-///
-/// It's used to specify blend operations without
-/// having to know details about the data layout of the
-/// `FieldElement2625x4`.
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum Lanes {
-    C,
-    D,
-    AB,
-    AC,
-    CD,
-    AD,
-    BC,
-    ABCD,
-}
-
-/// The `Shuffle` enum represents a shuffle of a `FieldElement2625x4`.
-///
-/// The enum variants are named by what they do to a vector \\(
-/// (A,B,C,D) \\); for instance, `Shuffle::BADC` turns \\( (A, B, C,
-/// D) \\) into \\( (B, A, D, C) \\).
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum Shuffle {
-    AAAA,
-    BBBB,
-    CACA,
-    DBBD,
-    ADDA,
-    CBCB,
-    ABAB,
-    BADC,
-    BACD,
-    ABDC,
-}
 
 /// A vector of four field elements.
 ///
@@ -124,29 +79,5 @@ impl FieldElement2625x4 {
         }
 
         out
-    }
-
-    /// Given \\((A,B,C,D)\\), compute \\((-A,-B,-C,-D)\\), without
-    /// performing a reduction.
-    ///
-    /// # Preconditions
-    ///
-    /// The coefficients of `self` must be bounded with \\( b < 0.999 \\).
-    ///
-    /// # Postconditions
-    ///
-    /// The coefficients of the result are bounded with \\( b < 1 \\).
-    #[inline]
-    pub(crate) fn negate_lazy(&self) -> FieldElement2625x4 {
-        // The limbs of self are bounded with b < 0.999, while the
-        // smallest limb of 2*p is 67108845 > 2^{26+0.9999}, so
-        // underflows are not possible.
-        FieldElement2625x4([
-            P_TIMES_2_LO - self.0[0],
-            P_TIMES_2_HI - self.0[1],
-            P_TIMES_2_HI - self.0[2],
-            P_TIMES_2_HI - self.0[3],
-            P_TIMES_2_HI - self.0[4],
-        ])
     }
 }

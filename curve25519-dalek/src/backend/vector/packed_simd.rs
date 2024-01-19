@@ -9,7 +9,6 @@
 //! UNSAFETY: Everything in this module assumes that we're running on hardware
 //!           which supports at least AVX2. This invariant *must* be enforced
 //!           by the callers of this code.
-use core::ops::{Add, AddAssign, BitAnd, BitAndAssign, BitXor, BitXorAssign, Sub};
 
 use curve25519_dalek_derive::unsafe_target_feature;
 
@@ -28,15 +27,6 @@ macro_rules! impl_shared {
         #[repr(transparent)]
         pub(crate) struct $ty(core::arch::x86_64::__m256i);
 
-
-
-        #[unsafe_target_feature("avx2")]
-        impl From<core::arch::x86_64::__m256i> for $ty {
-            #[inline]
-            fn from(value: core::arch::x86_64::__m256i) -> $ty {
-                $ty(value)
-            }
-        }
 
         #[unsafe_target_feature("avx2")]
         impl PartialEq for $ty {
@@ -69,86 +59,9 @@ macro_rules! impl_shared {
             }
         }
 
-
-        #[unsafe_target_feature("avx2")]
-        impl Add for $ty {
-            type Output = Self;
-
-            #[inline]
-            fn add(self, rhs: $ty) -> Self {
-                unsafe { core::arch::x86_64::$add_intrinsic(self.0, rhs.0).into() }
-            }
-        }
-
-        #[allow(clippy::assign_op_pattern)]
-        #[unsafe_target_feature("avx2")]
-        impl AddAssign for $ty {
-            #[inline]
-            fn add_assign(&mut self, rhs: $ty) {
-                *self = *self + rhs
-            }
-        }
-
-        #[unsafe_target_feature("avx2")]
-        impl Sub for $ty {
-            type Output = Self;
-
-            #[inline]
-            fn sub(self, rhs: $ty) -> Self {
-                unsafe { core::arch::x86_64::$sub_intrinsic(self.0, rhs.0).into() }
-            }
-        }
-
-        #[unsafe_target_feature("avx2")]
-        impl BitAnd for $ty {
-            type Output = Self;
-
-            #[inline]
-            fn bitand(self, rhs: $ty) -> Self {
-                unsafe { core::arch::x86_64::_mm256_and_si256(self.0, rhs.0).into() }
-            }
-        }
-
-        #[unsafe_target_feature("avx2")]
-        impl BitXor for $ty {
-            type Output = Self;
-
-            #[inline]
-            fn bitxor(self, rhs: $ty) -> Self {
-                unsafe { core::arch::x86_64::_mm256_xor_si256(self.0, rhs.0).into() }
-            }
-        }
-
-        #[allow(clippy::assign_op_pattern)]
-        #[unsafe_target_feature("avx2")]
-        impl BitAndAssign for $ty {
-            #[inline]
-            fn bitand_assign(&mut self, rhs: $ty) {
-                *self = *self & rhs;
-            }
-        }
-
-        #[allow(clippy::assign_op_pattern)]
-        #[unsafe_target_feature("avx2")]
-        impl BitXorAssign for $ty {
-            #[inline]
-            fn bitxor_assign(&mut self, rhs: $ty) {
-                *self = *self ^ rhs;
-            }
-        }
-
         #[unsafe_target_feature("avx2")]
         #[allow(dead_code)]
         impl $ty {
-            #[inline]
-            pub(crate) fn shl<const N: i32>(self) -> Self {
-                unsafe { core::arch::x86_64::$shl_intrinsic(self.0, N).into() }
-            }
-
-            #[inline]
-            pub(crate) fn shr<const N: i32>(self) -> Self {
-                unsafe { core::arch::x86_64::$shr_intrinsic(self.0, N).into() }
-            }
 
             #[inline]
             pub(crate) fn extract<const N: i32>(self) -> $lane_ty {
@@ -313,18 +226,5 @@ impl u32x8 {
     #[inline]
     pub(crate) fn splat(x: u32) -> u32x8 {
         unsafe { u32x8(core::arch::x86_64::_mm256_set1_epi32(x as i32)) }
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl u32x8 {
-    /// Multiplies the low unsigned 32-bits from each packed 64-bit element
-    /// and returns the unsigned 64-bit results.
-    ///
-    /// (This ignores the upper 32-bits from each packed 64-bits!)
-    #[inline]
-    pub(crate) fn mul32(self, rhs: u32x8) -> u64x4 {
-        // NOTE: This ignores the upper 32-bits from each packed 64-bits.
-        unsafe { core::arch::x86_64::_mm256_mul_epu32(self.0, rhs.0).into() }
     }
 }
