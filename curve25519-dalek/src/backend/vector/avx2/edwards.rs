@@ -47,9 +47,6 @@ use crate::edwards;
 use crate::window::{LookupTable};
 
 
-use crate::traits::Identity;
-
-use super::constants;
 use super::field::{FieldElement2625x4, Lanes, Shuffle};
 
 /// A point on Curve25519, using parallel Edwards formulas for curve
@@ -93,12 +90,6 @@ impl ConditionallySelectable for ExtendedPoint {
     }
 }
 
-#[unsafe_target_feature("avx2")]
-impl Identity for ExtendedPoint {
-    fn identity() -> ExtendedPoint {
-        constants::EXTENDEDPOINT_IDENTITY
-    }
-}
 
 #[unsafe_target_feature("avx2")]
 impl ExtendedPoint {
@@ -202,13 +193,6 @@ impl From<ExtendedPoint> for CachedPoint {
 
         // The coefficients of the output are bounded with b < 0.007.
         CachedPoint(x)
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl Identity for CachedPoint {
-    fn identity() -> CachedPoint {
-        constants::CACHEDPOINT_IDENTITY
     }
 }
 

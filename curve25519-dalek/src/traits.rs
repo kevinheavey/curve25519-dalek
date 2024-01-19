@@ -14,39 +14,13 @@
 #![allow(non_snake_case)]
 
 use core::borrow::Borrow;
-
-use subtle;
-
 use crate::scalar::{Scalar};
 
 // ------------------------------------------------------------------------
 // Public Traits
 // ------------------------------------------------------------------------
 
-/// Trait for getting the identity element of a point type.
-pub(crate) trait Identity {
-    /// Returns the identity element of the curve.
-    /// Can be used as a constructor.
-    fn identity() -> Self;
-}
 
-/// Trait for testing if a curve point is equivalent to the identity point.
-pub(crate) trait IsIdentity {
-    /// Return true if this element is the identity element of the curve.
-    fn is_identity(&self) -> bool;
-}
-
-/// Implement generic identity equality testing for a point representations
-/// which have constant-time equality testing and a defined identity
-/// constructor.
-impl<T> IsIdentity for T
-where
-    T: subtle::ConstantTimeEq + Identity,
-{
-    fn is_identity(&self) -> bool {
-        self.ct_eq(&T::identity()).into()
-    }
-}
 
 /// A precomputed table of basepoints, for optimising scalar multiplications.
 pub(crate) trait BasepointTable {

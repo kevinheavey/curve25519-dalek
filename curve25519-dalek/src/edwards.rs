@@ -115,17 +115,12 @@ use crate::constants;
 use crate::field::FieldElement;
 
 use crate::backend::serial::curve_models::AffineNielsPoint;
-use crate::backend::serial::curve_models::ProjectiveNielsPoint;
-use crate::backend::serial::curve_models::ProjectivePoint;
 
 #[cfg(feature = "precomputed-tables")]
 use crate::window::{
     LookupTableRadix128, LookupTableRadix16, LookupTableRadix256, LookupTableRadix32,
     LookupTableRadix64,
 };
-
-use crate::traits::{Identity};
-
 
 
 // ------------------------------------------------------------------------
@@ -241,108 +236,6 @@ impl CompressedEdwardsY {
         bytes.try_into().map(CompressedEdwardsY)
     }
 }
-
-impl Identity for EdwardsPoint {
-    fn identity() -> EdwardsPoint {
-        EdwardsPoint {
-            X: FieldElement::ZERO,
-            Y: FieldElement::ONE,
-            Z: FieldElement::ONE,
-            T: FieldElement::ZERO,
-        }
-    }
-}
-
-
-// ------------------------------------------------------------------------
-// Point conversions
-// ------------------------------------------------------------------------
-
-impl EdwardsPoint {
-    /// Convert to a ProjectiveNielsPoint
-    pub(crate) fn as_projective_niels(&self) -> ProjectiveNielsPoint {
-        ProjectiveNielsPoint {
-            Y_plus_X: &self.Y + &self.X,
-            Y_minus_X: &self.Y - &self.X,
-            Z: self.Z,
-            T2d: &self.T * &constants::EDWARDS_D2,
-        }
-    }
-
-    /// Convert the representation of this point from extended
-    /// coordinates to projective coordinates.
-    ///
-    /// Free.
-    pub(crate) const fn as_projective(&self) -> ProjectivePoint {
-        ProjectivePoint {
-            X: self.X,
-            Y: self.Y,
-            Z: self.Z,
-        }
-    }
-
-    /// Dehomogenize to a AffineNielsPoint.
-    /// Mainly for testing.
-    pub(crate) fn as_affine_niels(&self) -> AffineNielsPoint {
-        let recip = self.Z.invert();
-        let x = &self.X * &recip;
-        let y = &self.Y * &recip;
-        let xy2d = &(&x * &y) * &constants::EDWARDS_D2;
-        AffineNielsPoint {
-            y_plus_x: &y + &x,
-            y_minus_x: &y - &x,
-            xy2d,
-        }
-    }
-
-    #[cfg(feature = "digest")]
-    /// Maps the digest of the input bytes to the curve. This is NOT a hash-to-curve function, as
-    /// it produces points with a non-uniform distribution. Rather, it performs something that
-    /// resembles (but is not) half of the
-    /// [`hash_to_curve`](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#section-3-4.2.1)
-    /// function from the Elligator2 spec.
-    #[deprecated(
-        since = "4.0.0",
-        note = "previously named `hash_from_bytes`, this is not a secure hash function"
-    )]
-    pub(crate) fn nonspec_map_to_curve<D>(bytes: &[u8]) -> EdwardsPoint
-    where
-        D: Digest<OutputSize = U64> + Default,
-    {
-        let mut hash = D::new();
-        hash.update(bytes);
-        let h = hash.finalize();
-        let mut res = [0u8; 32];
-        res.copy_from_slice(&h[..32]);
-
-        let sign_bit = (res[31] & 0x80) >> 7;
-
-        let fe = FieldElement::from_bytes(&res);
-
-        let M1 = crate::montgomery::elligator_encode(&fe);
-        let E1_opt = M1.to_edwards(sign_bit);
-
-        E1_opt
-            .expect("Montgomery conversion to Edwards point in Elligator failed")
-            .mul_by_cofactor()
-    }
-}
-
-// ------------------------------------------------------------------------
-// Doubling
-// ------------------------------------------------------------------------
-
-impl EdwardsPoint {
-    /// Add this point to itself.
-    pub(crate) fn double(&self) -> EdwardsPoint {
-        self.as_projective().double().as_extended()
-    }
-}
-
-
-
-
-
 
 #[cfg(feature = "precomputed-tables")]
 macro_rules! impl_basepoint_table {

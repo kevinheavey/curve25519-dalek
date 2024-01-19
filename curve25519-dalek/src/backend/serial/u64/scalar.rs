@@ -11,12 +11,7 @@
 //! (0xfffffffffffff^2) * 5 = 0x4ffffffffffff60000000000005 (107 bits).
 //! ```
 
-use core::fmt::Debug;
 use core::ops::{Index, IndexMut};
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use crate::constants;
 
 /// The `Scalar52` struct represents an element in

@@ -29,15 +29,6 @@ pub(crate) const EDWARDS_D: FieldElement51 = FieldElement51::from_limbs([
     1442794654840575,
 ]);
 
-/// Edwards `2*d` value, equal to `2*(-121665/121666) mod p`.
-pub(crate) const EDWARDS_D2: FieldElement51 = FieldElement51::from_limbs([
-    1859910466990425,
-    932731440258426,
-    1072319116312658,
-    1815898335770999,
-    633789495995903,
-]);
-
 /// Precomputed value of one of the square roots of -1 (mod p)
 pub(crate) const SQRT_M1: FieldElement51 = FieldElement51::from_limbs([
     1718705420411056,

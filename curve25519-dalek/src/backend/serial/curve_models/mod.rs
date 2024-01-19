@@ -129,24 +129,6 @@ use core::ops::{Add, Neg, Sub};
 use crate::edwards::EdwardsPoint;
 use crate::field::FieldElement;
 
-// ------------------------------------------------------------------------
-// Internal point representations
-// ------------------------------------------------------------------------
-
-/// A `ProjectivePoint` is a point \\((X:Y:Z)\\) on the \\(\mathbb
-/// P\^2\\) model of the curve.
-/// A point \\((x,y)\\) in the affine model corresponds to
-/// \\((x:y:1)\\).
-///
-/// More details on the relationships between the different curve models
-/// can be found in the module-level documentation.
-#[allow(missing_docs)]
-#[derive(Copy, Clone)]
-pub(crate) struct ProjectivePoint {
-    pub X: FieldElement,
-    pub Y: FieldElement,
-    pub Z: FieldElement,
-}
 
 /// A `CompletedPoint` is a point \\(((X:Z), (Y:T))\\) on the \\(\mathbb
 /// P\^1 \times \mathbb P\^1 \\) model of the curve.
@@ -190,52 +172,6 @@ pub(crate) struct ProjectiveNielsPoint {
     pub Y_minus_X: FieldElement,
     pub Z: FieldElement,
     pub T2d: FieldElement,
-}
-
-// ------------------------------------------------------------------------
-// Constructors
-// ------------------------------------------------------------------------
-
-
-
-impl CompletedPoint {
-    /// Convert this point from the \\( \mathbb P\^1 \times \mathbb P\^1
-    /// \\) model to the \\( \mathbb P\^3 \\) model.
-    ///
-    /// This costs \\(4 \mathrm M \\).
-    pub(crate) fn as_extended(&self) -> EdwardsPoint {
-        EdwardsPoint {
-            X: &self.X * &self.T,
-            Y: &self.Y * &self.Z,
-            Z: &self.Z * &self.T,
-            T: &self.X * &self.Y,
-        }
-    }
-}
-
-// ------------------------------------------------------------------------
-// Doubling
-// ------------------------------------------------------------------------
-
-impl ProjectivePoint {
-    /// Double this point: return self + self
-    pub(crate) fn double(&self) -> CompletedPoint {
-        // Double()
-        let XX = self.X.square();
-        let YY = self.Y.square();
-        let ZZ2 = self.Z.square2();
-        let X_plus_Y = &self.X + &self.Y;
-        let X_plus_Y_sq = X_plus_Y.square();
-        let YY_plus_XX = &YY + &XX;
-        let YY_minus_XX = &YY - &XX;
-
-        CompletedPoint {
-            X: &X_plus_Y_sq - &YY_plus_XX,
-            Y: YY_plus_XX,
-            Z: YY_minus_XX,
-            T: &ZZ2 - &YY_minus_XX,
-        }
-    }
 }
 
 // ------------------------------------------------------------------------

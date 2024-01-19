@@ -13,13 +13,7 @@
 
 #![allow(non_snake_case)]
 
-use core::fmt::Debug;
-
 use cfg_if::cfg_if;
-
-use crate::backend::serial::curve_models::AffineNielsPoint;
-use crate::backend::serial::curve_models::ProjectiveNielsPoint;
-use crate::edwards::EdwardsPoint;
 
 macro_rules! impl_lookup_table {
     (Name = $name:ident, Size = $size:expr, SizeNeg = $neg:expr, SizeRange = $range:expr, ConversionRange = $conv_range:expr) => {
@@ -93,76 +87,9 @@ cfg_if! {
 #[derive(Copy, Clone)]
 pub(crate) struct NafLookupTable5<T>(pub(crate) [T; 8]);
 
-impl<T: Debug> Debug for NafLookupTable5<T> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "NafLookupTable5({:?})", self.0)
-    }
-}
-
-impl<'a> From<&'a EdwardsPoint> for NafLookupTable5<ProjectiveNielsPoint> {
-    fn from(A: &'a EdwardsPoint) -> Self {
-        let mut Ai = [A.as_projective_niels(); 8];
-        let A2 = A.double();
-        for i in 0..7 {
-            Ai[i + 1] = (&A2 + &Ai[i]).as_extended().as_projective_niels();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
-        NafLookupTable5(Ai)
-    }
-}
-
-impl<'a> From<&'a EdwardsPoint> for NafLookupTable5<AffineNielsPoint> {
-    fn from(A: &'a EdwardsPoint) -> Self {
-        let mut Ai = [A.as_affine_niels(); 8];
-        let A2 = A.double();
-        for i in 0..7 {
-            Ai[i + 1] = (&A2 + &Ai[i]).as_extended().as_affine_niels();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
-        NafLookupTable5(Ai)
-    }
-}
 
 /// Holds stuff up to 8. The only time we use tables this big is for precomputed basepoint tables
 /// and multiscalar multiplication (which requires alloc).
 #[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
 #[derive(Copy, Clone)]
 pub(crate) struct NafLookupTable8<T>(pub(crate) [T; 64]);
-
-
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-impl<T: Debug> Debug for NafLookupTable8<T> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        writeln!(f, "NafLookupTable8([")?;
-        for i in 0..64 {
-            writeln!(f, "\t{:?},", &self.0[i])?;
-        }
-        write!(f, "])")
-    }
-}
-
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-impl<'a> From<&'a EdwardsPoint> for NafLookupTable8<ProjectiveNielsPoint> {
-    fn from(A: &'a EdwardsPoint) -> Self {
-        let mut Ai = [A.as_projective_niels(); 64];
-        let A2 = A.double();
-        for i in 0..63 {
-            Ai[i + 1] = (&A2 + &Ai[i]).as_extended().as_projective_niels();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A, ..., 127A]
-        NafLookupTable8(Ai)
-    }
-}
-
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-impl<'a> From<&'a EdwardsPoint> for NafLookupTable8<AffineNielsPoint> {
-    fn from(A: &'a EdwardsPoint) -> Self {
-        let mut Ai = [A.as_affine_niels(); 64];
-        let A2 = A.double();
-        for i in 0..63 {
-            Ai[i + 1] = (&A2 + &Ai[i]).as_extended().as_affine_niels();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A, ..., 127A]
-        NafLookupTable8(Ai)
-    }
-}

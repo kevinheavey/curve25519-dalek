@@ -144,24 +144,7 @@ impl FieldElement {
         (t19, t3)
     }
 
-    /// Given a nonzero field element, compute its inverse.
-    ///
-    /// The inverse is computed as self^(p-2), since
-    /// x^(p-2)x = x^(p-1) = 1 (mod p).
-    ///
-    /// This function returns zero on input zero.
-    #[rustfmt::skip] // keep alignment of explanatory comments
-    #[allow(clippy::let_and_return)]
-    pub(crate) fn invert(&self) -> FieldElement {
-        // The bits of p-2 = 2^255 -19 -2 are 11010111111...11.
-        //
-        //                                 nonzero bits of exponent
-        let (t19, t3) = self.pow22501();   // t19: 249..0 ; t3: 3,1,0
-        let t20 = t19.pow2k(5);            // 254..5
-        let t21 = &t20 * &t3;              // 254..5,3,1,0
 
-        t21
-    }
 
     /// Raise this field element to the power (p-5)/8 = 2^252 -3.
     #[rustfmt::skip] // keep alignment of explanatory comments
