@@ -10,11 +10,11 @@
 #![doc = include_str!("../../../../docs/ifma-notes.md")]
 
 #[allow(missing_docs)]
-pub mod field;
+pub(crate) mod field;
 
 #[allow(missing_docs)]
-pub mod edwards;
+pub(crate) mod edwards;
 
-pub mod constants;
+pub(crate) mod constants;
 
 pub(crate) use self::edwards::{CachedPoint, ExtendedPoint};

@@ -51,7 +51,7 @@ use zeroize::Zeroize;
 /// The backend-specific type `FieldElement2625` should not be used
 /// outside of the `curve25519_dalek::field` module.
 #[derive(Copy, Clone)]
-pub struct FieldElement2625(pub(crate) [u32; 10]);
+pub(crate) struct FieldElement2625(pub(crate) [u32; 10]);
 
 impl Debug for FieldElement2625 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -289,17 +289,17 @@ impl FieldElement2625 {
     }
 
     /// The scalar \\( 0 \\).
-    pub const ZERO: FieldElement2625 = FieldElement2625::from_limbs([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pub(crate) const ZERO: FieldElement2625 = FieldElement2625::from_limbs([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     /// The scalar \\( 1 \\).
-    pub const ONE: FieldElement2625 = FieldElement2625::from_limbs([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pub(crate) const ONE: FieldElement2625 = FieldElement2625::from_limbs([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     /// The scalar \\( -1 \\).
-    pub const MINUS_ONE: FieldElement2625 = FieldElement2625::from_limbs([
+    pub(crate) const MINUS_ONE: FieldElement2625 = FieldElement2625::from_limbs([
         0x3ffffec, 0x1ffffff, 0x3ffffff, 0x1ffffff, 0x3ffffff, 0x1ffffff, 0x3ffffff, 0x1ffffff,
         0x3ffffff, 0x1ffffff,
     ]);
 
     /// Invert the sign of this field element
-    pub fn negate(&mut self) {
+    pub(crate) fn negate(&mut self) {
         // Compute -b as ((2^4 * p) - b) to avoid underflow.
         let neg = FieldElement2625::reduce([
             ((0x3ffffed << 4) - self.0[0]) as u64,
@@ -317,7 +317,7 @@ impl FieldElement2625 {
     }
 
     /// Given `k > 0`, return `self^(2^k)`.
-    pub fn pow2k(&self, k: u32) -> FieldElement2625 {
+    pub(crate) fn pow2k(&self, k: u32) -> FieldElement2625 {
         debug_assert!(k > 0);
         let mut z = self.square();
         for _ in 1..k {
@@ -401,7 +401,7 @@ impl FieldElement2625 {
     /// the canonical encoding, and check that the input was
     /// canonical.
     #[rustfmt::skip] // keep alignment of h[*] values
-    pub fn from_bytes(data: &[u8; 32]) -> FieldElement2625 {
+    pub(crate) fn from_bytes(data: &[u8; 32]) -> FieldElement2625 {
         #[inline]
         fn load3(b: &[u8]) -> u64 {
            (b[0] as u64) | ((b[1] as u64) << 8) | ((b[2] as u64) << 16)
@@ -431,7 +431,7 @@ impl FieldElement2625 {
     /// Serialize this `FieldElement51` to a 32-byte array.  The
     /// encoding is canonical.
     #[allow(clippy::identity_op)]
-    pub fn as_bytes(&self) -> [u8; 32] {
+    pub(crate) fn as_bytes(&self) -> [u8; 32] {
         let inp = &self.0;
         // Reduce the value represented by `in` to the range [0,2*p)
         let mut h: [u32; 10] = FieldElement2625::reduce([
@@ -589,12 +589,12 @@ impl FieldElement2625 {
     }
 
     /// Compute `self^2`.
-    pub fn square(&self) -> FieldElement2625 {
+    pub(crate) fn square(&self) -> FieldElement2625 {
         FieldElement2625::reduce(self.square_inner())
     }
 
     /// Compute `2*self^2`.
-    pub fn square2(&self) -> FieldElement2625 {
+    pub(crate) fn square2(&self) -> FieldElement2625 {
         let mut coeffs = self.square_inner();
         for coeff in &mut coeffs {
             *coeff += *coeff;

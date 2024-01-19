@@ -12,11 +12,11 @@
 #![doc = include_str!("../../../docs/parallel-formulas.md")]
 
 #[allow(missing_docs)]
-pub mod packed_simd;
+pub(crate) mod packed_simd;
 
-pub mod avx2;
+pub(crate) mod avx2;
 
 #[cfg(nightly)]
-pub mod ifma;
+pub(crate) mod ifma;
 
-pub mod scalar_mul;
+pub(crate) mod scalar_mul;

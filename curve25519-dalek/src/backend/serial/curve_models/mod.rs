@@ -151,7 +151,7 @@ use crate::traits::ValidityCheck;
 /// can be found in the module-level documentation.
 #[allow(missing_docs)]
 #[derive(Copy, Clone)]
-pub struct ProjectivePoint {
+pub(crate) struct ProjectivePoint {
     pub X: FieldElement,
     pub Y: FieldElement,
     pub Z: FieldElement,
@@ -166,7 +166,7 @@ pub struct ProjectivePoint {
 /// can be found in the module-level documentation.
 #[derive(Copy, Clone)]
 #[allow(missing_docs)]
-pub struct CompletedPoint {
+pub(crate) struct CompletedPoint {
     pub X: FieldElement,
     pub Y: FieldElement,
     pub Z: FieldElement,
@@ -181,7 +181,7 @@ pub struct CompletedPoint {
 // Safe to derive Eq because affine coordinates.
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct AffineNielsPoint {
+pub(crate) struct AffineNielsPoint {
     pub y_plus_x: FieldElement,
     pub y_minus_x: FieldElement,
     pub xy2d: FieldElement,
@@ -203,7 +203,7 @@ impl Zeroize for AffineNielsPoint {
 /// can be found in the module-level documentation.
 #[derive(Copy, Clone)]
 #[allow(missing_docs)]
-pub struct ProjectiveNielsPoint {
+pub(crate) struct ProjectiveNielsPoint {
     pub Y_plus_X: FieldElement,
     pub Y_minus_X: FieldElement,
     pub Z: FieldElement,
@@ -335,7 +335,7 @@ impl ProjectivePoint {
     /// \\( \mathbb P\^3 \\) model.
     ///
     /// This costs \\(3 \mathrm M + 1 \mathrm S\\).
-    pub fn as_extended(&self) -> EdwardsPoint {
+    pub(crate) fn as_extended(&self) -> EdwardsPoint {
         EdwardsPoint {
             X: &self.X * &self.Z,
             Y: &self.Y * &self.Z,
@@ -350,7 +350,7 @@ impl CompletedPoint {
     /// \\) model to the \\( \mathbb P\^2 \\) model.
     ///
     /// This costs \\(3 \mathrm M \\).
-    pub fn as_projective(&self) -> ProjectivePoint {
+    pub(crate) fn as_projective(&self) -> ProjectivePoint {
         ProjectivePoint {
             X: &self.X * &self.T,
             Y: &self.Y * &self.Z,
@@ -362,7 +362,7 @@ impl CompletedPoint {
     /// \\) model to the \\( \mathbb P\^3 \\) model.
     ///
     /// This costs \\(4 \mathrm M \\).
-    pub fn as_extended(&self) -> EdwardsPoint {
+    pub(crate) fn as_extended(&self) -> EdwardsPoint {
         EdwardsPoint {
             X: &self.X * &self.T,
             Y: &self.Y * &self.Z,
@@ -378,7 +378,7 @@ impl CompletedPoint {
 
 impl ProjectivePoint {
     /// Double this point: return self + self
-    pub fn double(&self) -> CompletedPoint {
+    pub(crate) fn double(&self) -> CompletedPoint {
         // Double()
         let XX = self.X.square();
         let YY = self.Y.square();

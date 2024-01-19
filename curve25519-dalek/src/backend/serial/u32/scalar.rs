@@ -21,7 +21,7 @@ use crate::constants;
 /// The `Scalar29` struct represents an element in \\(\mathbb{Z} / \ell\mathbb{Z}\\) as 9 29-bit
 /// limbs
 #[derive(Copy, Clone)]
-pub struct Scalar29(pub [u32; 9]);
+pub(crate) struct Scalar29(pub [u32; 9]);
 
 impl Debug for Scalar29 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -57,11 +57,11 @@ fn m(x: u32, y: u32) -> u64 {
 
 impl Scalar29 {
     /// The scalar \\( 0 \\).
-    pub const ZERO: Scalar29 = Scalar29([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pub(crate) const ZERO: Scalar29 = Scalar29([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
     /// Unpack a 32 byte / 256 bit scalar into 9 29-bit limbs.
     #[rustfmt::skip] // keep alignment of s[*] calculations
-    pub fn from_bytes(bytes: &[u8; 32]) -> Scalar29 {
+    pub(crate) fn from_bytes(bytes: &[u8; 32]) -> Scalar29 {
         let mut words = [0u32; 8];
         for i in 0..8 {
             for j in 0..4 {
@@ -88,7 +88,7 @@ impl Scalar29 {
 
     /// Reduce a 64 byte / 512 bit scalar mod l.
     #[rustfmt::skip] // keep alignment of lo[*] calculations
-    pub fn from_bytes_wide(bytes: &[u8; 64]) -> Scalar29 {
+    pub(crate) fn from_bytes_wide(bytes: &[u8; 64]) -> Scalar29 {
         let mut words = [0u32; 16];
         for i in 0..16 {
             for j in 0..4 {
@@ -128,7 +128,7 @@ impl Scalar29 {
     /// Pack the limbs of this `Scalar29` into 32 bytes.
     #[rustfmt::skip] // keep alignment of s[*] calculations
     #[allow(clippy::identity_op)]
-    pub fn as_bytes(&self) -> [u8; 32] {
+    pub(crate) fn as_bytes(&self) -> [u8; 32] {
         let mut s = [0u8; 32];
 
         s[ 0] =  (self.0[0] >>  0)                      as u8;
@@ -168,7 +168,7 @@ impl Scalar29 {
     }
 
     /// Compute `a + b` (mod l).
-    pub fn add(a: &Scalar29, b: &Scalar29) -> Scalar29 {
+    pub(crate) fn add(a: &Scalar29, b: &Scalar29) -> Scalar29 {
         let mut sum = Scalar29::ZERO;
         let mask = (1u32 << 29) - 1;
 
@@ -184,7 +184,7 @@ impl Scalar29 {
     }
 
     /// Compute `a - b` (mod l).
-    pub fn sub(a: &Scalar29, b: &Scalar29) -> Scalar29 {
+    pub(crate) fn sub(a: &Scalar29, b: &Scalar29) -> Scalar29 {
         let mut difference = Scalar29::ZERO;
         let mask = (1u32 << 29) - 1;
 
@@ -350,7 +350,7 @@ impl Scalar29 {
 
     /// Compute `a * b` (mod l).
     #[inline(never)]
-    pub fn mul(a: &Scalar29, b: &Scalar29) -> Scalar29 {
+    pub(crate) fn mul(a: &Scalar29, b: &Scalar29) -> Scalar29 {
         let ab = Scalar29::montgomery_reduce(&Scalar29::mul_internal(a, b));
         Scalar29::montgomery_reduce(&Scalar29::mul_internal(&ab, &constants::RR))
     }
@@ -358,181 +358,36 @@ impl Scalar29 {
     /// Compute `a^2` (mod l).
     #[inline(never)]
     #[allow(dead_code)] // XXX we don't expose square() via the Scalar API
-    pub fn square(&self) -> Scalar29 {
+    pub(crate) fn square(&self) -> Scalar29 {
         let aa = Scalar29::montgomery_reduce(&Scalar29::square_internal(self));
         Scalar29::montgomery_reduce(&Scalar29::mul_internal(&aa, &constants::RR))
     }
 
     /// Compute `(a * b) / R` (mod l), where R is the Montgomery modulus 2^261
     #[inline(never)]
-    pub fn montgomery_mul(a: &Scalar29, b: &Scalar29) -> Scalar29 {
+    pub(crate) fn montgomery_mul(a: &Scalar29, b: &Scalar29) -> Scalar29 {
         Scalar29::montgomery_reduce(&Scalar29::mul_internal(a, b))
     }
 
     /// Compute `(a^2) / R` (mod l) in Montgomery form, where R is the Montgomery modulus 2^261
     #[inline(never)]
-    pub fn montgomery_square(&self) -> Scalar29 {
+    pub(crate) fn montgomery_square(&self) -> Scalar29 {
         Scalar29::montgomery_reduce(&Scalar29::square_internal(self))
     }
 
     /// Puts a Scalar29 in to Montgomery form, i.e. computes `a*R (mod l)`
     #[inline(never)]
-    pub fn as_montgomery(&self) -> Scalar29 {
+    pub(crate) fn as_montgomery(&self) -> Scalar29 {
         Scalar29::montgomery_mul(self, &constants::RR)
     }
 
     /// Takes a Scalar29 out of Montgomery form, i.e. computes `a/R (mod l)`
     #[allow(clippy::wrong_self_convention)]
-    pub fn from_montgomery(&self) -> Scalar29 {
+    pub(crate) fn from_montgomery(&self) -> Scalar29 {
         let mut limbs = [0u64; 17];
         for i in 0..9 {
             limbs[i] = self[i] as u64;
         }
         Scalar29::montgomery_reduce(&limbs)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    /// Note: x is 2^253-1 which is slightly larger than the largest scalar produced by
-    /// this implementation (l-1), and should verify there are no overflows for valid scalars
-    ///
-    /// x = 2^253-1 = 14474011154664524427946373126085988481658748083205070504932198000989141204991
-    /// x = 7237005577332262213973186563042994240801631723825162898930247062703686954002 mod l
-    /// x = 5147078182513738803124273553712992179887200054963030844803268920753008712037*R mod l in Montgomery form
-    pub static X: Scalar29 = Scalar29([
-        0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff,
-        0x1fffffff, 0x001fffff,
-    ]);
-
-    /// x^2 = 3078544782642840487852506753550082162405942681916160040940637093560259278169 mod l
-    pub static XX: Scalar29 = Scalar29([
-        0x00217559, 0x000b3401, 0x103ff43b, 0x1462a62c, 0x1d6f9f38, 0x18e7a42f, 0x09a3dcee,
-        0x008dbe18, 0x0006ce65,
-    ]);
-
-    /// x^2 = 2912514428060642753613814151688322857484807845836623976981729207238463947987*R mod l in Montgomery form
-    pub static XX_MONT: Scalar29 = Scalar29([
-        0x152b4d2e, 0x0571d53b, 0x1da6d964, 0x188663b6, 0x1d1b5f92, 0x19d50e3f, 0x12306c29,
-        0x0c6f26fe, 0x00030edb,
-    ]);
-
-    /// y = 6145104759870991071742105800796537629880401874866217824609283457819451087098
-    pub static Y: Scalar29 = Scalar29([
-        0x1e1458fa, 0x165ba838, 0x1d787b36, 0x0e577f3a, 0x1d2baf06, 0x1d689a19, 0x1fff3047,
-        0x117704ab, 0x000d9601,
-    ]);
-
-    /// x*y = 36752150652102274958925982391442301741
-    pub static XY: Scalar29 = Scalar29([
-        0x0ba7632d, 0x017736bb, 0x15c76138, 0x0c69daa1, 0x000001ba, 0x00000000, 0x00000000,
-        0x00000000, 0x00000000,
-    ]);
-
-    /// x*y = 3783114862749659543382438697751927473898937741870308063443170013240655651591*R mod l in Montgomery form
-    pub static XY_MONT: Scalar29 = Scalar29([
-        0x077b51e1, 0x1c64e119, 0x02a19ef5, 0x18d2129e, 0x00de0430, 0x045a7bc8, 0x04cfc7c9,
-        0x1c002681, 0x000bdc1c,
-    ]);
-
-    /// a = 2351415481556538453565687241199399922945659411799870114962672658845158063753
-    pub static A: Scalar29 = Scalar29([
-        0x07b3be89, 0x02291b60, 0x14a99f03, 0x07dc3787, 0x0a782aae, 0x16262525, 0x0cfdb93f,
-        0x13f5718d, 0x000532da,
-    ]);
-
-    /// b = 4885590095775723760407499321843594317911456947580037491039278279440296187236
-    pub static B: Scalar29 = Scalar29([
-        0x15421564, 0x1e69fd72, 0x093d9692, 0x161785be, 0x1587d69f, 0x09d9dada, 0x130246c0,
-        0x0c0a8e72, 0x000acd25,
-    ]);
-
-    /// a+b = 0
-    /// a-b = 4702830963113076907131374482398799845891318823599740229925345317690316127506
-    pub static AB: Scalar29 = Scalar29([
-        0x0f677d12, 0x045236c0, 0x09533e06, 0x0fb86f0f, 0x14f0555c, 0x0c4c4a4a, 0x19fb727f,
-        0x07eae31a, 0x000a65b5,
-    ]);
-
-    // c = (2^512 - 1) % l = 1627715501170711445284395025044413883736156588369414752970002579683115011840
-    pub static C: Scalar29 = Scalar29([
-        0x049c0f00, 0x00308f1a, 0x0164d1e9, 0x1c374ed1, 0x1be65d00, 0x19e90bfa, 0x08f73bb1,
-        0x036f8613, 0x00039941,
-    ]);
-
-    #[test]
-    fn mul_max() {
-        let res = Scalar29::mul(&X, &X);
-        for i in 0..9 {
-            assert!(res[i] == XX[i]);
-        }
-    }
-
-    #[test]
-    fn square_max() {
-        let res = X.square();
-        for i in 0..9 {
-            assert!(res[i] == XX[i]);
-        }
-    }
-
-    #[test]
-    fn montgomery_mul_max() {
-        let res = Scalar29::montgomery_mul(&X, &X);
-        for i in 0..9 {
-            assert!(res[i] == XX_MONT[i]);
-        }
-    }
-
-    #[test]
-    fn montgomery_square_max() {
-        let res = X.montgomery_square();
-        for i in 0..9 {
-            assert!(res[i] == XX_MONT[i]);
-        }
-    }
-
-    #[test]
-    fn mul() {
-        let res = Scalar29::mul(&X, &Y);
-        for i in 0..9 {
-            assert!(res[i] == XY[i]);
-        }
-    }
-
-    #[test]
-    fn montgomery_mul() {
-        let res = Scalar29::montgomery_mul(&X, &Y);
-        for i in 0..9 {
-            assert!(res[i] == XY_MONT[i]);
-        }
-    }
-
-    #[test]
-    fn add() {
-        let res = Scalar29::add(&A, &B);
-        let zero = Scalar29::ZERO;
-        for i in 0..9 {
-            assert!(res[i] == zero[i]);
-        }
-    }
-
-    #[test]
-    fn sub() {
-        let res = Scalar29::sub(&A, &B);
-        for i in 0..9 {
-            assert!(res[i] == AB[i]);
-        }
-    }
-
-    #[test]
-    fn from_bytes_wide() {
-        let bignum = [255u8; 64]; // 2^512 - 1
-        let reduced = Scalar29::from_bytes_wide(&bignum);
-        for i in 0..9 {
-            assert!(reduced[i] == C[i]);
-        }
     }
 }

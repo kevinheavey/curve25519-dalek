@@ -4,7 +4,7 @@
     "avx2",
     conditional("avx512ifma,avx512vl", nightly)
 )]
-pub mod spec {
+pub(crate) mod spec {
 
     #[for_target_feature("avx2")]
     use crate::backend::vector::avx2::{CachedPoint, ExtendedPoint};
@@ -18,7 +18,7 @@ pub mod spec {
     use crate::window::LookupTable;
 
     /// Perform constant-time, variable-base scalar multiplication.
-    pub fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
+    pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
         // Construct a lookup table of [P,2P,3P,4P,5P,6P,7P,8P]
         let lookup_table = LookupTable::<CachedPoint>::from(point);
         // Setting s = scalar, compute

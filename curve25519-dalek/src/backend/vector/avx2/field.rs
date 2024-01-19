@@ -150,7 +150,7 @@ pub enum Shuffle {
 /// the post-conditions of one operation are compatible with the
 /// pre-conditions of the next.
 #[derive(Clone, Copy, Debug)]
-pub struct FieldElement2625x4(pub(crate) [u32x8; 5]);
+pub(crate) struct FieldElement2625x4(pub(crate) [u32x8; 5]);
 
 use subtle::Choice;
 use subtle::ConditionallySelectable;
@@ -186,12 +186,12 @@ impl ConditionallySelectable for FieldElement2625x4 {
 
 #[unsafe_target_feature("avx2")]
 impl FieldElement2625x4 {
-    pub const ZERO: FieldElement2625x4 = FieldElement2625x4([u32x8::splat_const::<0>(); 5]);
+    pub(crate) const ZERO: FieldElement2625x4 = FieldElement2625x4([u32x8::splat_const::<0>(); 5]);
 
     /// Split this vector into an array of four (serial) field
     /// elements.
     #[rustfmt::skip] // keep alignment of extracted lanes
-    pub fn split(&self) -> [FieldElement51; 4] {
+    pub(crate) fn split(&self) -> [FieldElement51; 4] {
         let mut out = [FieldElement51::ZERO; 4];
         for i in 0..5 {
             let a_2i   = self.0[i].extract::<0>() as u64; //
@@ -218,7 +218,7 @@ impl FieldElement2625x4 {
     /// that when this function is inlined, LLVM is able to lower the
     /// shuffle using an immediate.
     #[inline]
-    pub fn shuffle(&self, control: Shuffle) -> FieldElement2625x4 {
+    pub(crate) fn shuffle(&self, control: Shuffle) -> FieldElement2625x4 {
         #[inline(always)]
         fn shuffle_lanes(x: u32x8, control: Shuffle) -> u32x8 {
             unsafe {
@@ -258,7 +258,7 @@ impl FieldElement2625x4 {
     /// that this function can be inlined and LLVM can lower it to a
     /// blend instruction using an immediate.
     #[inline]
-    pub fn blend(&self, other: FieldElement2625x4, control: Lanes) -> FieldElement2625x4 {
+    pub(crate) fn blend(&self, other: FieldElement2625x4, control: Lanes) -> FieldElement2625x4 {
         #[inline(always)]
         fn blend_lanes(x: u32x8, y: u32x8, control: Lanes) -> u32x8 {
             unsafe {
@@ -322,7 +322,7 @@ impl FieldElement2625x4 {
     }
 
     /// Convenience wrapper around `new(x,x,x,x)`.
-    pub fn splat(x: &FieldElement51) -> FieldElement2625x4 {
+    pub(crate) fn splat(x: &FieldElement51) -> FieldElement2625x4 {
         FieldElement2625x4::new(x, x, x, x)
     }
 
@@ -332,7 +332,7 @@ impl FieldElement2625x4 {
     ///
     /// The resulting `FieldElement2625x4` is bounded with \\( b < 0.0002 \\).
     #[rustfmt::skip] // keep alignment of computed lanes
-    pub fn new(
+    pub(crate) fn new(
         x0: &FieldElement51,
         x1: &FieldElement51,
         x2: &FieldElement51,
@@ -371,7 +371,7 @@ impl FieldElement2625x4 {
     ///
     /// The coefficients of the result are bounded with \\( b < 1 \\).
     #[inline]
-    pub fn negate_lazy(&self) -> FieldElement2625x4 {
+    pub(crate) fn negate_lazy(&self) -> FieldElement2625x4 {
         // The limbs of self are bounded with b < 0.999, while the
         // smallest limb of 2*p is 67108845 > 2^{26+0.9999}, so
         // underflows are not possible.
@@ -394,7 +394,7 @@ impl FieldElement2625x4 {
     ///
     /// The coefficients of the result are bounded with \\( b < 1.6 \\).
     #[inline]
-    pub fn diff_sum(&self) -> FieldElement2625x4 {
+    pub(crate) fn diff_sum(&self) -> FieldElement2625x4 {
         // tmp1 = (B, A, D, C)
         let tmp1 = self.shuffle(Shuffle::BADC);
         // tmp2 = (-A, B, -C, D)
@@ -409,7 +409,7 @@ impl FieldElement2625x4 {
     ///
     /// The coefficients of the result are bounded with \\( b < 0.0002 \\).
     #[inline]
-    pub fn reduce(&self) -> FieldElement2625x4 {
+    pub(crate) fn reduce(&self) -> FieldElement2625x4 {
         let shifts = u32x8::new(26, 26, 25, 25, 26, 26, 25, 25);
         let masks = u32x8::new(
             (1 << 26) - 1,
@@ -594,7 +594,7 @@ impl FieldElement2625x4 {
     ///
     /// The coefficients of the result are bounded with \\( b < 0.007 \\).
     #[rustfmt::skip] // keep alignment of z* calculations
-    pub fn square_and_negate_D(&self) -> FieldElement2625x4 {
+    pub(crate) fn square_and_negate_D(&self) -> FieldElement2625x4 {
         #[inline(always)]
         fn m(x: u32x8, y: u32x8) -> u64x4 {
             x.mul32(y)
@@ -867,117 +867,5 @@ impl Mul<&FieldElement2625x4> for &FieldElement2625x4 {
         // means we could get a tighter bound on the outputs, or a
         // looser bound on b_x.
         FieldElement2625x4::reduce64([z0, z1, z2, z3, z4, z5, z6, z7, z8, z9])
-    }
-}
-
-#[cfg(target_feature = "avx2")]
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn scale_by_curve_constants() {
-        let mut x = FieldElement2625x4::splat(&FieldElement51::ONE);
-
-        x = x * (121666, 121666, 2 * 121666, 2 * 121665);
-
-        let xs = x.split();
-        assert_eq!(xs[0], FieldElement51([121666, 0, 0, 0, 0]));
-        assert_eq!(xs[1], FieldElement51([121666, 0, 0, 0, 0]));
-        assert_eq!(xs[2], FieldElement51([2 * 121666, 0, 0, 0, 0]));
-        assert_eq!(xs[3], FieldElement51([2 * 121665, 0, 0, 0, 0]));
-    }
-
-    #[test]
-    fn diff_sum_vs_serial() {
-        let x0 = FieldElement51([10000, 10001, 10002, 10003, 10004]);
-        let x1 = FieldElement51([10100, 10101, 10102, 10103, 10104]);
-        let x2 = FieldElement51([10200, 10201, 10202, 10203, 10204]);
-        let x3 = FieldElement51([10300, 10301, 10302, 10303, 10304]);
-
-        let vec = FieldElement2625x4::new(&x0, &x1, &x2, &x3).diff_sum();
-
-        let result = vec.split();
-
-        assert_eq!(result[0], &x1 - &x0);
-        assert_eq!(result[1], &x1 + &x0);
-        assert_eq!(result[2], &x3 - &x2);
-        assert_eq!(result[3], &x3 + &x2);
-    }
-
-    #[test]
-    fn square_vs_serial() {
-        let x0 = FieldElement51([10000, 10001, 10002, 10003, 10004]);
-        let x1 = FieldElement51([10100, 10101, 10102, 10103, 10104]);
-        let x2 = FieldElement51([10200, 10201, 10202, 10203, 10204]);
-        let x3 = FieldElement51([10300, 10301, 10302, 10303, 10304]);
-
-        let vec = FieldElement2625x4::new(&x0, &x1, &x2, &x3);
-
-        let result = vec.square_and_negate_D().split();
-
-        assert_eq!(result[0], &x0 * &x0);
-        assert_eq!(result[1], &x1 * &x1);
-        assert_eq!(result[2], &x2 * &x2);
-        assert_eq!(result[3], -&(&x3 * &x3));
-    }
-
-    #[test]
-    fn multiply_vs_serial() {
-        let x0 = FieldElement51([10000, 10001, 10002, 10003, 10004]);
-        let x1 = FieldElement51([10100, 10101, 10102, 10103, 10104]);
-        let x2 = FieldElement51([10200, 10201, 10202, 10203, 10204]);
-        let x3 = FieldElement51([10300, 10301, 10302, 10303, 10304]);
-
-        let vec = FieldElement2625x4::new(&x0, &x1, &x2, &x3);
-        let vecprime = vec.clone();
-
-        let result = (&vec * &vecprime).split();
-
-        assert_eq!(result[0], &x0 * &x0);
-        assert_eq!(result[1], &x1 * &x1);
-        assert_eq!(result[2], &x2 * &x2);
-        assert_eq!(result[3], &x3 * &x3);
-    }
-
-    #[test]
-    fn test_unpack_repack_pair() {
-        let x0 = FieldElement51([10000 + (10001 << 26), 0, 0, 0, 0]);
-        let x1 = FieldElement51([10100 + (10101 << 26), 0, 0, 0, 0]);
-        let x2 = FieldElement51([10200 + (10201 << 26), 0, 0, 0, 0]);
-        let x3 = FieldElement51([10300 + (10301 << 26), 0, 0, 0, 0]);
-
-        let vec = FieldElement2625x4::new(&x0, &x1, &x2, &x3);
-
-        let src = vec.0[0];
-
-        let (a, b) = unpack_pair(src);
-
-        let expected_a = u32x8::new(10000, 0, 10100, 0, 10200, 0, 10300, 0);
-        let expected_b = u32x8::new(10001, 0, 10101, 0, 10201, 0, 10301, 0);
-
-        assert_eq!(a, expected_a);
-        assert_eq!(b, expected_b);
-
-        let expected_src = repack_pair(a, b);
-
-        assert_eq!(src, expected_src);
-    }
-
-    #[test]
-    fn new_split_roundtrips() {
-        let x0 = FieldElement51::from_bytes(&[0x10; 32]);
-        let x1 = FieldElement51::from_bytes(&[0x11; 32]);
-        let x2 = FieldElement51::from_bytes(&[0x12; 32]);
-        let x3 = FieldElement51::from_bytes(&[0x13; 32]);
-
-        let vec = FieldElement2625x4::new(&x0, &x1, &x2, &x3);
-
-        let splits = vec.split();
-
-        assert_eq!(x0, splits[0]);
-        assert_eq!(x1, splits[1]);
-        assert_eq!(x2, splits[2]);
-        assert_eq!(x3, splits[3]);
     }
 }

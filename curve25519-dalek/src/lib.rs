@@ -51,7 +51,7 @@ extern crate alloc;
 extern crate std;
 
 #[cfg(feature = "digest")]
-pub use digest;
+pub(crate) use digest;
 
 // Internal macros. Must come first!
 #[macro_use]
@@ -62,22 +62,22 @@ pub(crate) mod macros;
 //------------------------------------------------------------------------
 
 // Scalar arithmetic mod l = 2^252 + ..., the order of the Ristretto group
-pub mod scalar;
+pub(crate) mod scalar;
 
 // Point operations on the Montgomery form of Curve25519
-pub mod montgomery;
+pub(crate) mod montgomery;
 
 // Point operations on the Edwards form of Curve25519
 pub mod edwards;
 
 // Group operations on the Ristretto group
-pub mod ristretto;
+pub(crate) mod ristretto;
 
 // Useful constants, like the Ed25519 basepoint
-pub mod constants;
+pub(crate) mod constants;
 
 // External (and internal) traits.
-pub mod traits;
+pub(crate) mod traits;
 
 //------------------------------------------------------------------------
 // curve25519-dalek internal modules
@@ -88,16 +88,12 @@ pub(crate) mod field;
 
 // Arithmetic backends (using u32, u64, etc) live here
 #[cfg(docsrs)]
-pub mod backend;
+pub(crate) mod backend;
 #[cfg(not(docsrs))]
 pub(crate) mod backend;
 
 // Generic code for window lookups
 pub(crate) mod window;
-
-pub use crate::{
-    edwards::EdwardsPoint, montgomery::MontgomeryPoint, ristretto::RistrettoPoint, scalar::Scalar,
-};
 
 // Build time diagnostics for validation
 #[cfg(curve25519_dalek_diagnostics = "build")]

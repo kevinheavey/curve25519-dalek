@@ -55,7 +55,7 @@ use fiat_crypto::curve25519_32::*;
 /// The backend-specific type `FieldElement2625` should not be used
 /// outside of the `curve25519_dalek::field` module.
 #[derive(Copy, Clone)]
-pub struct FieldElement2625(pub(crate) fiat_25519_tight_field_element);
+pub(crate) struct FieldElement2625(pub(crate) fiat_25519_tight_field_element);
 
 impl Debug for FieldElement2625 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -194,23 +194,23 @@ impl FieldElement2625 {
     }
 
     /// The scalar \\( 0 \\).
-    pub const ZERO: FieldElement2625 = FieldElement2625::from_limbs([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pub(crate) const ZERO: FieldElement2625 = FieldElement2625::from_limbs([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     /// The scalar \\( 1 \\).
-    pub const ONE: FieldElement2625 = FieldElement2625::from_limbs([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pub(crate) const ONE: FieldElement2625 = FieldElement2625::from_limbs([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     /// The scalar \\( -1 \\).
-    pub const MINUS_ONE: FieldElement2625 = FieldElement2625::from_limbs([
+    pub(crate) const MINUS_ONE: FieldElement2625 = FieldElement2625::from_limbs([
         0x3ffffec, 0x1ffffff, 0x3ffffff, 0x1ffffff, 0x3ffffff, 0x1ffffff, 0x3ffffff, 0x1ffffff,
         0x3ffffff, 0x1ffffff,
     ]);
 
     /// Invert the sign of this field element
-    pub fn negate(&mut self) {
+    pub(crate) fn negate(&mut self) {
         let neg = self.neg();
         self.0 = neg.0;
     }
 
     /// Given `k > 0`, return `self^(2^k)`.
-    pub fn pow2k(&self, k: u32) -> FieldElement2625 {
+    pub(crate) fn pow2k(&self, k: u32) -> FieldElement2625 {
         debug_assert!(k > 0);
         let mut z = self.square();
         for _ in 1..k {
@@ -230,7 +230,7 @@ impl FieldElement2625 {
     /// encoding of every field element should decode, re-encode to
     /// the canonical encoding, and check that the input was
     /// canonical.
-    pub fn from_bytes(data: &[u8; 32]) -> FieldElement2625 {
+    pub(crate) fn from_bytes(data: &[u8; 32]) -> FieldElement2625 {
         let mut temp = [0u8; 32];
         temp.copy_from_slice(data);
         temp[31] &= 127u8;
@@ -241,14 +241,14 @@ impl FieldElement2625 {
 
     /// Serialize this `FieldElement51` to a 32-byte array.  The
     /// encoding is canonical.
-    pub fn as_bytes(&self) -> [u8; 32] {
+    pub(crate) fn as_bytes(&self) -> [u8; 32] {
         let mut bytes = [0u8; 32];
         fiat_25519_to_bytes(&mut bytes, &self.0);
         bytes
     }
 
     /// Compute `self^2`.
-    pub fn square(&self) -> FieldElement2625 {
+    pub(crate) fn square(&self) -> FieldElement2625 {
         let mut self_loose = fiat_25519_loose_field_element([0; 10]);
         fiat_25519_relax(&mut self_loose, &self.0);
         let mut output = FieldElement2625::ZERO;
@@ -257,7 +257,7 @@ impl FieldElement2625 {
     }
 
     /// Compute `2*self^2`.
-    pub fn square2(&self) -> FieldElement2625 {
+    pub(crate) fn square2(&self) -> FieldElement2625 {
         let mut self_loose = fiat_25519_loose_field_element([0; 10]);
         fiat_25519_relax(&mut self_loose, &self.0);
         let mut square = fiat_25519_tight_field_element([0; 10]);

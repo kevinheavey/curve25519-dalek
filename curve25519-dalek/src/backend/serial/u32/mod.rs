@@ -15,8 +15,8 @@
 //! multiplication of two \\(32\\)-bit values to a \\(64\\)-bit result
 //! is constant-time on the target platform.
 
-pub mod field;
+pub(crate) mod field;
 
-pub mod scalar;
+pub(crate) mod scalar;
 
-pub mod constants;
+pub(crate) mod constants;

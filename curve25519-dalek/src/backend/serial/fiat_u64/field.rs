@@ -44,7 +44,7 @@ use fiat_crypto::curve25519_64::*;
 /// The backend-specific type `FieldElement51` should not be used
 /// outside of the `curve25519_dalek::field` module.
 #[derive(Copy, Clone)]
-pub struct FieldElement51(pub(crate) fiat_25519_tight_field_element);
+pub(crate) struct FieldElement51(pub(crate) fiat_25519_tight_field_element);
 
 impl Debug for FieldElement51 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -173,11 +173,11 @@ impl FieldElement51 {
     }
 
     /// The scalar \\( 0 \\).
-    pub const ZERO: FieldElement51 = FieldElement51::from_limbs([0, 0, 0, 0, 0]);
+    pub(crate) const ZERO: FieldElement51 = FieldElement51::from_limbs([0, 0, 0, 0, 0]);
     /// The scalar \\( 1 \\).
-    pub const ONE: FieldElement51 = FieldElement51::from_limbs([1, 0, 0, 0, 0]);
+    pub(crate) const ONE: FieldElement51 = FieldElement51::from_limbs([1, 0, 0, 0, 0]);
     /// The scalar \\( -1 \\).
-    pub const MINUS_ONE: FieldElement51 = FieldElement51::from_limbs([
+    pub(crate) const MINUS_ONE: FieldElement51 = FieldElement51::from_limbs([
         2251799813685228,
         2251799813685247,
         2251799813685247,
@@ -207,7 +207,7 @@ impl FieldElement51 {
     /// the canonical encoding, and check that the input was
     /// canonical.
     ///
-    pub fn from_bytes(bytes: &[u8; 32]) -> FieldElement51 {
+    pub(crate) fn from_bytes(bytes: &[u8; 32]) -> FieldElement51 {
         let mut temp = [0u8; 32];
         temp.copy_from_slice(bytes);
         temp[31] &= 127u8;
@@ -218,14 +218,14 @@ impl FieldElement51 {
 
     /// Serialize this `FieldElement51` to a 32-byte array.  The
     /// encoding is canonical.
-    pub fn as_bytes(&self) -> [u8; 32] {
+    pub(crate) fn as_bytes(&self) -> [u8; 32] {
         let mut bytes = [0u8; 32];
         fiat_25519_to_bytes(&mut bytes, &self.0);
         bytes
     }
 
     /// Given `k > 0`, return `self^(2^k)`.
-    pub fn pow2k(&self, mut k: u32) -> FieldElement51 {
+    pub(crate) fn pow2k(&self, mut k: u32) -> FieldElement51 {
         let mut output = *self;
         loop {
             let mut input = fiat_25519_loose_field_element([0; 5]);
@@ -239,7 +239,7 @@ impl FieldElement51 {
     }
 
     /// Returns the square of this field element.
-    pub fn square(&self) -> FieldElement51 {
+    pub(crate) fn square(&self) -> FieldElement51 {
         let mut self_loose = fiat_25519_loose_field_element([0; 5]);
         fiat_25519_relax(&mut self_loose, &self.0);
         let mut output = FieldElement51::ZERO;
@@ -248,7 +248,7 @@ impl FieldElement51 {
     }
 
     /// Returns 2 times the square of this field element.
-    pub fn square2(&self) -> FieldElement51 {
+    pub(crate) fn square2(&self) -> FieldElement51 {
         let mut self_loose = fiat_25519_loose_field_element([0; 5]);
         fiat_25519_relax(&mut self_loose, &self.0);
         let mut square = fiat_25519_tight_field_element([0; 5]);

@@ -24,14 +24,14 @@ use crate::scalar::{clamp_integer, Scalar};
 // ------------------------------------------------------------------------
 
 /// Trait for getting the identity element of a point type.
-pub trait Identity {
+pub(crate) trait Identity {
     /// Returns the identity element of the curve.
     /// Can be used as a constructor.
     fn identity() -> Self;
 }
 
 /// Trait for testing if a curve point is equivalent to the identity point.
-pub trait IsIdentity {
+pub(crate) trait IsIdentity {
     /// Return true if this element is the identity element of the curve.
     fn is_identity(&self) -> bool;
 }
@@ -49,7 +49,7 @@ where
 }
 
 /// A precomputed table of basepoints, for optimising scalar multiplications.
-pub trait BasepointTable {
+pub(crate) trait BasepointTable {
     /// The type of point contained within this table.
     type Point;
 
@@ -76,7 +76,7 @@ pub trait BasepointTable {
 }
 
 /// A trait for constant-time multiscalar multiplication without precomputation.
-pub trait MultiscalarMul {
+pub(crate) trait MultiscalarMul {
     /// The type of point being multiplied, e.g., `RistrettoPoint`.
     type Point;
 
@@ -135,7 +135,7 @@ pub trait MultiscalarMul {
 }
 
 /// A trait for variable-time multiscalar multiplication without precomputation.
-pub trait VartimeMultiscalarMul {
+pub(crate) trait VartimeMultiscalarMul {
     /// The type of point being multiplied, e.g., `RistrettoPoint`.
     type Point;
 
@@ -289,7 +289,7 @@ pub trait VartimeMultiscalarMul {
 /// known and matching, as if they were `ExactSizeIterator`s.  (It
 /// does not require `ExactSizeIterator` only because that trait is
 /// broken).
-pub trait VartimePrecomputedMultiscalarMul: Sized {
+pub(crate) trait VartimePrecomputedMultiscalarMul: Sized {
     /// The type of point to be multiplied, e.g., `RistrettoPoint`.
     type Point: Clone;
 

@@ -12,19 +12,19 @@
 //! Implementations of various multiplication algorithms for the SIMD backends.
 
 #[allow(missing_docs)]
-pub mod variable_base;
+pub(crate) mod variable_base;
 
 #[allow(missing_docs)]
-pub mod vartime_double_base;
-
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
-pub mod straus;
+pub(crate) mod vartime_double_base;
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub mod precomputed_straus;
+pub(crate) mod straus;
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub mod pippenger;
+pub(crate) mod precomputed_straus;
+
+#[allow(missing_docs)]
+#[cfg(feature = "alloc")]
+pub(crate) mod pippenger;

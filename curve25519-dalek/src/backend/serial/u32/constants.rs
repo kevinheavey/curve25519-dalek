@@ -111,7 +111,7 @@ pub(crate) const RR: Scalar29 = Scalar29([
 /// This is called `_POINT` to distinguish it from
 /// `ED25519_BASEPOINT_TABLE`, which should be used for scalar
 /// multiplication (it's much faster).
-pub const ED25519_BASEPOINT_POINT: EdwardsPoint = EdwardsPoint {
+pub(crate) const ED25519_BASEPOINT_POINT: EdwardsPoint = EdwardsPoint {
     X: FieldElement2625::from_limbs([
         52811034, 25909283, 16144682, 17082669, 27570973, 30858332, 40966398, 8378388, 20764389,
         8758491,
@@ -138,11 +138,11 @@ pub const ED25519_BASEPOINT_POINT: EdwardsPoint = EdwardsPoint {
 /// The Ed25519 basepoint has y = 4/5.  This is called `_POINT` to
 /// distinguish it from `_TABLE`, which should be used for scalar
 /// multiplication (it's much faster).
-pub const EIGHT_TORSION: [EdwardsPoint; 8] = EIGHT_TORSION_INNER_DOC_HIDDEN;
+pub(crate) const EIGHT_TORSION: [EdwardsPoint; 8] = EIGHT_TORSION_INNER_DOC_HIDDEN;
 
 /// Inner item used to hide limb constants from cargo doc output.
 #[doc(hidden)]
-pub const EIGHT_TORSION_INNER_DOC_HIDDEN: [EdwardsPoint; 8] = [
+pub(crate) const EIGHT_TORSION_INNER_DOC_HIDDEN: [EdwardsPoint; 8] = [
     EdwardsPoint {
         X: FieldElement2625::from_limbs([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
         Y: FieldElement2625::from_limbs([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
@@ -240,7 +240,7 @@ pub const EIGHT_TORSION_INNER_DOC_HIDDEN: [EdwardsPoint; 8] = [
 
 /// Table containing precomputed multiples of the Ed25519 basepoint \\(B = (x, 4/5)\\).
 #[cfg(feature = "precomputed-tables")]
-pub static ED25519_BASEPOINT_TABLE: &'static EdwardsBasepointTable =
+pub(crate) static ED25519_BASEPOINT_TABLE: &'static EdwardsBasepointTable =
     &ED25519_BASEPOINT_TABLE_INNER_DOC_HIDDEN;
 
 /// Inner constant, used to avoid filling the docs with precomputed points.

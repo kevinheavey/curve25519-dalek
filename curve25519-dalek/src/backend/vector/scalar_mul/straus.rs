@@ -15,7 +15,7 @@
     "avx2",
     conditional("avx512ifma,avx512vl", nightly)
 )]
-pub mod spec {
+pub(crate) mod spec {
 
     use alloc::vec::Vec;
 
@@ -44,7 +44,7 @@ pub mod spec {
     /// AVX2 code uses different curve models (it does not pass between
     /// multiple models during scalar mul), and it has to convert the
     /// point representation on the fly.
-    pub struct Straus {}
+    pub(crate) struct Straus {}
 
     impl MultiscalarMul for Straus {
         type Point = EdwardsPoint;

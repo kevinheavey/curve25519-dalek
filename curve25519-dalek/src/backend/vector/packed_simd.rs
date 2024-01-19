@@ -26,7 +26,7 @@ macro_rules! impl_shared {
         #[allow(non_camel_case_types)]
         #[derive(Copy, Clone, Debug)]
         #[repr(transparent)]
-        pub struct $ty(core::arch::x86_64::__m256i);
+        pub(crate) struct $ty(core::arch::x86_64::__m256i);
 
         #[unsafe_target_feature("avx2")]
         impl From<$ty> for core::arch::x86_64::__m256i {
@@ -148,17 +148,17 @@ macro_rules! impl_shared {
         #[allow(dead_code)]
         impl $ty {
             #[inline]
-            pub fn shl<const N: i32>(self) -> Self {
+            pub(crate) fn shl<const N: i32>(self) -> Self {
                 unsafe { core::arch::x86_64::$shl_intrinsic(self.0, N).into() }
             }
 
             #[inline]
-            pub fn shr<const N: i32>(self) -> Self {
+            pub(crate) fn shr<const N: i32>(self) -> Self {
                 unsafe { core::arch::x86_64::$shr_intrinsic(self.0, N).into() }
             }
 
             #[inline]
-            pub fn extract<const N: i32>(self) -> $lane_ty {
+            pub(crate) fn extract<const N: i32>(self) -> $lane_ty {
                 unsafe { core::arch::x86_64::$extract_intrinsic(self.0, N) as $lane_ty }
             }
         }
@@ -237,7 +237,7 @@ impl u64x4 {
     ///
     /// Should only be called from `const` contexts. At runtime `new` is going to be faster.
     #[inline]
-    pub const fn new_const(x0: u64, x1: u64, x2: u64, x3: u64) -> Self {
+    pub(crate) const fn new_const(x0: u64, x1: u64, x2: u64, x3: u64) -> Self {
         // SAFETY: Transmuting between an array and a SIMD type is safe
         // https://rust-lang.github.io/unsafe-code-guidelines/layout/packed-simd-vectors.html
         unsafe { Self(core::mem::transmute([x0, x1, x2, x3])) }
@@ -247,14 +247,14 @@ impl u64x4 {
     ///
     /// Should only be called from `const` contexts. At runtime `splat` is going to be faster.
     #[inline]
-    pub const fn splat_const<const N: u64>() -> Self {
+    pub(crate) const fn splat_const<const N: u64>() -> Self {
         Self::new_const(N, N, N, N)
     }
 
     /// Constructs a new instance.
     #[unsafe_target_feature("avx2")]
     #[inline]
-    pub fn new(x0: u64, x1: u64, x2: u64, x3: u64) -> u64x4 {
+    pub(crate) fn new(x0: u64, x1: u64, x2: u64, x3: u64) -> u64x4 {
         unsafe {
             // _mm256_set_epi64 sets the underlying vector in reverse order of the args
             u64x4(core::arch::x86_64::_mm256_set_epi64x(
@@ -266,7 +266,7 @@ impl u64x4 {
     /// Constructs a new instance with all of the elements initialized to the given value.
     #[unsafe_target_feature("avx2")]
     #[inline]
-    pub fn splat(x: u64) -> u64x4 {
+    pub(crate) fn splat(x: u64) -> u64x4 {
         unsafe { u64x4(core::arch::x86_64::_mm256_set1_epi64x(x as i64)) }
     }
 }
@@ -278,7 +278,7 @@ impl u32x8 {
     /// Should only be called from `const` contexts. At runtime `new` is going to be faster.
     #[allow(clippy::too_many_arguments)]
     #[inline]
-    pub const fn new_const(
+    pub(crate) const fn new_const(
         x0: u32,
         x1: u32,
         x2: u32,
@@ -297,7 +297,7 @@ impl u32x8 {
     ///
     /// Should only be called from `const` contexts. At runtime `splat` is going to be faster.
     #[inline]
-    pub const fn splat_const<const N: u32>() -> Self {
+    pub(crate) const fn splat_const<const N: u32>() -> Self {
         Self::new_const(N, N, N, N, N, N, N, N)
     }
 
@@ -305,7 +305,7 @@ impl u32x8 {
     #[allow(clippy::too_many_arguments)]
     #[unsafe_target_feature("avx2")]
     #[inline]
-    pub fn new(x0: u32, x1: u32, x2: u32, x3: u32, x4: u32, x5: u32, x6: u32, x7: u32) -> u32x8 {
+    pub(crate) fn new(x0: u32, x1: u32, x2: u32, x3: u32, x4: u32, x5: u32, x6: u32, x7: u32) -> u32x8 {
         unsafe {
             // _mm256_set_epi32 sets the underlying vector in reverse order of the args
             u32x8(core::arch::x86_64::_mm256_set_epi32(
@@ -318,7 +318,7 @@ impl u32x8 {
     /// Constructs a new instance with all of the elements initialized to the given value.
     #[unsafe_target_feature("avx2")]
     #[inline]
-    pub fn splat(x: u32) -> u32x8 {
+    pub(crate) fn splat(x: u32) -> u32x8 {
         unsafe { u32x8(core::arch::x86_64::_mm256_set1_epi32(x as i32)) }
     }
 }
@@ -330,7 +330,7 @@ impl u32x8 {
     ///
     /// (This ignores the upper 32-bits from each packed 64-bits!)
     #[inline]
-    pub fn mul32(self, rhs: u32x8) -> u64x4 {
+    pub(crate) fn mul32(self, rhs: u32x8) -> u64x4 {
         // NOTE: This ignores the upper 32-bits from each packed 64-bits.
         unsafe { core::arch::x86_64::_mm256_mul_epu32(self.0, rhs.0).into() }
     }

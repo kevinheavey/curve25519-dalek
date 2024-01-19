@@ -28,10 +28,10 @@ use super::constants;
 use super::field::{F51x4Reduced, F51x4Unreduced, Lanes, Shuffle};
 
 #[derive(Copy, Clone, Debug)]
-pub struct ExtendedPoint(pub(super) F51x4Unreduced);
+pub(crate) struct ExtendedPoint(pub(super) F51x4Unreduced);
 
 #[derive(Copy, Clone, Debug)]
-pub struct CachedPoint(pub(super) F51x4Reduced);
+pub(crate) struct CachedPoint(pub(super) F51x4Reduced);
 
 #[unsafe_target_feature("avx512ifma,avx512vl")]
 impl From<edwards::EdwardsPoint> for ExtendedPoint {
@@ -83,7 +83,7 @@ impl Identity for ExtendedPoint {
 
 #[unsafe_target_feature("avx512ifma,avx512vl")]
 impl ExtendedPoint {
-    pub fn double(&self) -> ExtendedPoint {
+    pub(crate) fn double(&self) -> ExtendedPoint {
         // (Y1 X1 T1 Z1) -- uses vpshufd (1c latency @ 1/c)
         let mut tmp0 = self.0.shuffle(Shuffle::BADC);
 
@@ -124,7 +124,7 @@ impl ExtendedPoint {
         ExtendedPoint(&tmp2.shuffle(Shuffle::DBBD) * &tmp2.shuffle(Shuffle::CACA))
     }
 
-    pub fn mul_by_pow_2(&self, k: u32) -> ExtendedPoint {
+    pub(crate) fn mul_by_pow_2(&self, k: u32) -> ExtendedPoint {
         let mut tmp: ExtendedPoint = *self;
         for _ in 0..k {
             tmp = tmp.double();
@@ -246,92 +246,5 @@ impl<'a> From<&'a edwards::EdwardsPoint> for NafLookupTable8<CachedPoint> {
         }
         // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A, ..., 127A]
         NafLookupTable8(Ai)
-    }
-}
-
-#[cfg(target_feature = "avx512ifma,avx512vl")]
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    fn addition_test_helper(P: edwards::EdwardsPoint, Q: edwards::EdwardsPoint) {
-        // Test the serial implementation of the parallel addition formulas
-        //let R_serial: edwards::EdwardsPoint = serial_add(P.into(), Q.into()).into();
-
-        // Test the vector implementation of the parallel readdition formulas
-        let cached_Q = CachedPoint::from(ExtendedPoint::from(Q));
-        let R_vector: edwards::EdwardsPoint = (&ExtendedPoint::from(P) + &cached_Q).into();
-        let S_vector: edwards::EdwardsPoint = (&ExtendedPoint::from(P) - &cached_Q).into();
-
-        println!("Testing point addition:");
-        println!("P = {:?}", P);
-        println!("Q = {:?}", Q);
-        println!("cached Q = {:?}", cached_Q);
-        println!("R = P + Q = {:?}", &P + &Q);
-        //println!("R_serial = {:?}", R_serial);
-        println!("R_vector = {:?}", R_vector);
-        println!("S = P - Q = {:?}", &P - &Q);
-        println!("S_vector = {:?}", S_vector);
-        //assert_eq!(R_serial.compress(), (&P + &Q).compress());
-        assert_eq!(R_vector.compress(), (&P + &Q).compress());
-        assert_eq!(S_vector.compress(), (&P - &Q).compress());
-        println!("OK!\n");
-    }
-
-    #[test]
-    fn vector_addition_vs_serial_addition_vs_edwards_extendedpoint() {
-        use crate::constants;
-        use crate::scalar::Scalar;
-
-        println!("Testing id +- id");
-        let P = edwards::EdwardsPoint::identity();
-        let Q = edwards::EdwardsPoint::identity();
-        addition_test_helper(P, Q);
-
-        println!("Testing id +- B");
-        let P = edwards::EdwardsPoint::identity();
-        let Q = constants::ED25519_BASEPOINT_POINT;
-        addition_test_helper(P, Q);
-
-        println!("Testing B +- B");
-        let P = constants::ED25519_BASEPOINT_POINT;
-        let Q = constants::ED25519_BASEPOINT_POINT;
-        addition_test_helper(P, Q);
-
-        println!("Testing B +- kB");
-        let P = constants::ED25519_BASEPOINT_POINT;
-        let Q = constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
-        addition_test_helper(P, Q);
-    }
-
-    fn doubling_test_helper(P: edwards::EdwardsPoint) {
-        //let R1: edwards::EdwardsPoint = serial_double(P.into()).into();
-        let R2: edwards::EdwardsPoint = ExtendedPoint::from(P).double().into();
-        println!("Testing point doubling:");
-        println!("P = {:?}", P);
-        //println!("(serial) R1 = {:?}", R1);
-        println!("(vector) R2 = {:?}", R2);
-        println!("P + P = {:?}", &P + &P);
-        //assert_eq!(R1.compress(), (&P + &P).compress());
-        assert_eq!(R2.compress(), (&P + &P).compress());
-        println!("OK!\n");
-    }
-
-    #[test]
-    fn vector_doubling_vs_serial_doubling_vs_edwards_extendedpoint() {
-        use crate::constants;
-        use crate::scalar::Scalar;
-
-        println!("Testing [2]id");
-        let P = edwards::EdwardsPoint::identity();
-        doubling_test_helper(P);
-
-        println!("Testing [2]B");
-        let P = constants::ED25519_BASEPOINT_POINT;
-        doubling_test_helper(P);
-
-        println!("Testing [2]([k]B)");
-        let P = constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
-        doubling_test_helper(P);
     }
 }

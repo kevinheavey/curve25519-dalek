@@ -20,9 +20,9 @@
 //! will be used if available.
 
 #[path = "../u64/scalar.rs"]
-pub mod scalar;
+pub(crate) mod scalar;
 
-pub mod field;
+pub(crate) mod field;
 
 #[path = "../u64/constants.rs"]
-pub mod constants;
+pub(crate) mod constants;

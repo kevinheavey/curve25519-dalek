@@ -25,25 +25,25 @@ cfg_if! {
 
         #[cfg(curve25519_dalek_bits = "32")]
         #[doc(hidden)]
-        pub mod fiat_u32;
+        pub(crate) mod fiat_u32;
 
         #[cfg(curve25519_dalek_bits = "64")]
         #[doc(hidden)]
-        pub mod fiat_u64;
+        pub(crate) mod fiat_u64;
 
     } else {
 
         #[cfg(curve25519_dalek_bits = "32")]
         #[doc(hidden)]
-        pub mod u32;
+        pub(crate) mod u32;
 
         #[cfg(curve25519_dalek_bits = "64")]
         #[doc(hidden)]
-        pub mod u64;
+        pub(crate) mod u64;
 
     }
 }
 
-pub mod curve_models;
+pub(crate) mod curve_models;
 
-pub mod scalar_mul;
+pub(crate) mod scalar_mul;

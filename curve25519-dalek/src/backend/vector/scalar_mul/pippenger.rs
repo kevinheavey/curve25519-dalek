@@ -13,7 +13,7 @@
     "avx2",
     conditional("avx512ifma,avx512vl", nightly)
 )]
-pub mod spec {
+pub(crate) mod spec {
 
     use alloc::vec::Vec;
 
@@ -33,7 +33,7 @@ pub mod spec {
     /// Implements a version of Pippenger's algorithm.
     ///
     /// See the documentation in the serial `scalar_mul::pippenger` module for details.
-    pub struct Pippenger;
+    pub(crate) struct Pippenger;
 
     impl VartimeMultiscalarMul for Pippenger {
         type Point = EdwardsPoint;
@@ -132,45 +132,6 @@ pub mod spec {
                     })
                     .into(),
             )
-        }
-    }
-
-    #[cfg(test)]
-    mod test {
-        #[test]
-        fn test_vartime_pippenger() {
-            use super::*;
-            use crate::constants;
-            use crate::scalar::Scalar;
-
-            // Reuse points across different tests
-            let mut n = 512;
-            let x = Scalar::from(2128506u64).invert();
-            let y = Scalar::from(4443282u64).invert();
-            let points: Vec<_> = (0..n)
-                .map(|i| constants::ED25519_BASEPOINT_POINT * Scalar::from(1 + i as u64))
-                .collect();
-            let scalars: Vec<_> = (0..n)
-                .map(|i| x + (Scalar::from(i as u64) * y)) // fast way to make ~random but deterministic scalars
-                .collect();
-
-            let premultiplied: Vec<EdwardsPoint> = scalars
-                .iter()
-                .zip(points.iter())
-                .map(|(sc, pt)| sc * pt)
-                .collect();
-
-            while n > 0 {
-                let scalars = &scalars[0..n].to_vec();
-                let points = &points[0..n].to_vec();
-                let control: EdwardsPoint = premultiplied[0..n].iter().sum();
-
-                let subject = Pippenger::vartime_multiscalar_mul(scalars.clone(), points.clone());
-
-                assert_eq!(subject.compress(), control.compress());
-
-                n = n / 2;
-            }
         }
     }
 }

@@ -15,7 +15,7 @@
     "avx2",
     conditional("avx512ifma,avx512vl", nightly)
 )]
-pub mod spec {
+pub(crate) mod spec {
 
     use alloc::vec::Vec;
 
@@ -34,7 +34,7 @@ pub mod spec {
     use crate::traits::VartimePrecomputedMultiscalarMul;
     use crate::window::{NafLookupTable5, NafLookupTable8};
 
-    pub struct VartimePrecomputedStraus {
+    pub(crate) struct VartimePrecomputedStraus {
         static_lookup_tables: Vec<NafLookupTable8<CachedPoint>>,
     }
 

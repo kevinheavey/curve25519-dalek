@@ -40,7 +40,7 @@ use zeroize::Zeroize;
 /// The backend-specific type `FieldElement51` should not be used
 /// outside of the `curve25519_dalek::field` module.
 #[derive(Copy, Clone)]
-pub struct FieldElement51(pub(crate) [u64; 5]);
+pub(crate) struct FieldElement51(pub(crate) [u64; 5]);
 
 impl Debug for FieldElement51 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -260,20 +260,12 @@ impl FieldElement51 {
     }
 
     /// The scalar \\( 0 \\).
-    pub const ZERO: FieldElement51 = FieldElement51::from_limbs([0, 0, 0, 0, 0]);
+    pub(crate) const ZERO: FieldElement51 = FieldElement51::from_limbs([0, 0, 0, 0, 0]);
     /// The scalar \\( 1 \\).
-    pub const ONE: FieldElement51 = FieldElement51::from_limbs([1, 0, 0, 0, 0]);
-    /// The scalar \\( -1 \\).
-    pub const MINUS_ONE: FieldElement51 = FieldElement51::from_limbs([
-        2251799813685228,
-        2251799813685247,
-        2251799813685247,
-        2251799813685247,
-        2251799813685247,
-    ]);
+    pub(crate) const ONE: FieldElement51 = FieldElement51::from_limbs([1, 0, 0, 0, 0]);
 
     /// Invert the sign of this field element
-    pub fn negate(&mut self) {
+    pub(crate) fn negate(&mut self) {
         // See commentary in the Sub impl
         let neg = FieldElement51::reduce([
             36028797018963664u64 - self.0[0],
@@ -335,7 +327,7 @@ impl FieldElement51 {
     /// canonical.
     ///
     #[rustfmt::skip] // keep alignment of bit shifts
-    pub fn from_bytes(bytes: &[u8; 32]) -> FieldElement51 {
+    pub(crate) fn from_bytes(bytes: &[u8; 32]) -> FieldElement51 {
         let load8 = |input: &[u8]| -> u64 {
                (input[0] as u64)
             | ((input[1] as u64) << 8)
@@ -365,7 +357,7 @@ impl FieldElement51 {
     /// Serialize this `FieldElement51` to a 32-byte array.  The
     /// encoding is canonical.
     #[rustfmt::skip] // keep alignment of s[*] calculations
-    pub fn as_bytes(&self) -> [u8; 32] {
+    pub(crate) fn as_bytes(&self) -> [u8; 32] {
         // Let h = limbs[0] + limbs[1]*2^51 + ... + limbs[4]*2^204.
         //
         // Write h = pq + r with 0 <= r < p.
@@ -451,7 +443,7 @@ impl FieldElement51 {
 
     /// Given `k > 0`, return `self^(2^k)`.
     #[rustfmt::skip] // keep alignment of c* calculations
-    pub fn pow2k(&self, mut k: u32) -> FieldElement51 {
+    pub(crate) fn pow2k(&self, mut k: u32) -> FieldElement51 {
 
         debug_assert!( k > 0 );
 
@@ -559,12 +551,12 @@ impl FieldElement51 {
     }
 
     /// Returns the square of this field element.
-    pub fn square(&self) -> FieldElement51 {
+    pub(crate) fn square(&self) -> FieldElement51 {
         self.pow2k(1)
     }
 
     /// Returns 2 times the square of this field element.
-    pub fn square2(&self) -> FieldElement51 {
+    pub(crate) fn square2(&self) -> FieldElement51 {
         let mut square = self.pow2k(1);
         for i in 0..5 {
             square.0[i] *= 2;

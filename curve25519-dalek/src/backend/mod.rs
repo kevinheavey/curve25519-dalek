@@ -34,13 +34,13 @@
 //! The [`vector`] backend is selected by the `simd_backend` cargo
 //! feature; it uses the [`serial`] backend for non-vectorized operations.
 
-use crate::EdwardsPoint;
-use crate::Scalar;
+use crate::edwards::EdwardsPoint;
+use crate::scalar::Scalar;
 
-pub mod serial;
+pub(crate) mod serial;
 
 #[cfg(curve25519_dalek_backend = "simd")]
-pub mod vector;
+pub(crate) mod vector;
 
 #[derive(Copy, Clone)]
 enum BackendKind {
@@ -76,7 +76,7 @@ fn get_selected_backend() -> BackendKind {
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub fn pippenger_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
+pub(crate) fn pippenger_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
 where
     I: IntoIterator,
     I::Item: core::borrow::Borrow<Scalar>,
@@ -109,7 +109,7 @@ pub(crate) enum VartimePrecomputedStraus {
 
 #[cfg(feature = "alloc")]
 impl VartimePrecomputedStraus {
-    pub fn new<I>(static_points: I) -> Self
+    pub(crate) fn new<I>(static_points: I) -> Self
     where
         I: IntoIterator,
         I::Item: core::borrow::Borrow<EdwardsPoint>,
@@ -128,7 +128,7 @@ impl VartimePrecomputedStraus {
         }
     }
 
-    pub fn optional_mixed_multiscalar_mul<I, J, K>(
+    pub(crate) fn optional_mixed_multiscalar_mul<I, J, K>(
         &self,
         static_scalars: I,
         dynamic_scalars: J,
@@ -167,7 +167,7 @@ impl VartimePrecomputedStraus {
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub fn straus_multiscalar_mul<I, J>(scalars: I, points: J) -> EdwardsPoint
+pub(crate) fn straus_multiscalar_mul<I, J>(scalars: I, points: J) -> EdwardsPoint
 where
     I: IntoIterator,
     I::Item: core::borrow::Borrow<Scalar>,
@@ -198,7 +198,7 @@ where
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub fn straus_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
+pub(crate) fn straus_optional_multiscalar_mul<I, J>(scalars: I, points: J) -> Option<EdwardsPoint>
 where
     I: IntoIterator,
     I::Item: core::borrow::Borrow<Scalar>,
@@ -229,7 +229,7 @@ where
 }
 
 /// Perform constant-time, variable-base scalar multiplication.
-pub fn variable_base_mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
+pub(crate) fn variable_base_mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     match get_selected_backend() {
         #[cfg(curve25519_dalek_backend = "simd")]
         BackendKind::Avx2 => self::vector::scalar_mul::variable_base::spec_avx2::mul(point, scalar),
@@ -241,16 +241,3 @@ pub fn variable_base_mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint 
     }
 }
 
-/// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
-#[allow(non_snake_case)]
-pub fn vartime_double_base_mul(a: &Scalar, A: &EdwardsPoint, b: &Scalar) -> EdwardsPoint {
-    match get_selected_backend() {
-        #[cfg(curve25519_dalek_backend = "simd")]
-        BackendKind::Avx2 => self::vector::scalar_mul::vartime_double_base::spec_avx2::mul(a, A, b),
-        #[cfg(all(curve25519_dalek_backend = "simd", nightly))]
-        BackendKind::Avx512 => {
-            self::vector::scalar_mul::vartime_double_base::spec_avx512ifma_avx512vl::mul(a, A, b)
-        }
-        BackendKind::Serial => self::serial::scalar_mul::vartime_double_base::mul(a, A, b),
-    }
-}
