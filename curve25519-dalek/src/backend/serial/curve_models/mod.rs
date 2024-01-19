@@ -123,14 +123,10 @@
 
 #![allow(non_snake_case)]
 
-use core::fmt::Debug;
 use core::ops::{Add, Neg, Sub};
 
 use subtle::Choice;
 use subtle::ConditionallySelectable;
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
 
 use crate::constants;
 
@@ -187,15 +183,6 @@ pub(crate) struct AffineNielsPoint {
     pub xy2d: FieldElement,
 }
 
-#[cfg(feature = "zeroize")]
-impl Zeroize for AffineNielsPoint {
-    fn zeroize(&mut self) {
-        self.y_plus_x.zeroize();
-        self.y_minus_x.zeroize();
-        self.xy2d.zeroize();
-    }
-}
-
 /// A pre-computed point on the \\( \mathbb P\^3 \\) model for the
 /// curve, represented as \\((Y+X, Y-X, Z, 2dXY)\\) in "Niels coordinates".
 ///
@@ -210,31 +197,13 @@ pub(crate) struct ProjectiveNielsPoint {
     pub T2d: FieldElement,
 }
 
-#[cfg(feature = "zeroize")]
-impl Zeroize for ProjectiveNielsPoint {
-    fn zeroize(&mut self) {
-        self.Y_plus_X.zeroize();
-        self.Y_minus_X.zeroize();
-        self.Z.zeroize();
-        self.T2d.zeroize();
-    }
-}
-
 // ------------------------------------------------------------------------
 // Constructors
 // ------------------------------------------------------------------------
 
 use crate::traits::Identity;
 
-impl Identity for ProjectivePoint {
-    fn identity() -> ProjectivePoint {
-        ProjectivePoint {
-            X: FieldElement::ZERO,
-            Y: FieldElement::ONE,
-            Z: FieldElement::ONE,
-        }
-    }
-}
+
 
 impl Identity for ProjectiveNielsPoint {
     fn identity() -> ProjectiveNielsPoint {
@@ -247,27 +216,8 @@ impl Identity for ProjectiveNielsPoint {
     }
 }
 
-impl Default for ProjectiveNielsPoint {
-    fn default() -> ProjectiveNielsPoint {
-        ProjectiveNielsPoint::identity()
-    }
-}
 
-impl Identity for AffineNielsPoint {
-    fn identity() -> AffineNielsPoint {
-        AffineNielsPoint {
-            y_plus_x: FieldElement::ONE,
-            y_minus_x: FieldElement::ONE,
-            xy2d: FieldElement::ZERO,
-        }
-    }
-}
 
-impl Default for AffineNielsPoint {
-    fn default() -> AffineNielsPoint {
-        AffineNielsPoint::identity()
-    }
-}
 
 // ------------------------------------------------------------------------
 // Validity checks (for debugging, not CT)
@@ -328,18 +278,6 @@ impl ConditionallySelectable for AffineNielsPoint {
 
 
 impl CompletedPoint {
-    /// Convert this point from the \\( \mathbb P\^1 \times \mathbb P\^1
-    /// \\) model to the \\( \mathbb P\^2 \\) model.
-    ///
-    /// This costs \\(3 \mathrm M \\).
-    pub(crate) fn as_projective(&self) -> ProjectivePoint {
-        ProjectivePoint {
-            X: &self.X * &self.T,
-            Y: &self.Y * &self.Z,
-            Z: &self.Z * &self.T,
-        }
-    }
-
     /// Convert this point from the \\( \mathbb P\^1 \times \mathbb P\^1
     /// \\) model to the \\( \mathbb P\^3 \\) model.
     ///
@@ -504,43 +442,3 @@ impl<'a> Neg for &'a AffineNielsPoint {
     }
 }
 
-// ------------------------------------------------------------------------
-// Debug traits
-// ------------------------------------------------------------------------
-
-impl Debug for ProjectivePoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(
-            f,
-            "ProjectivePoint{{\n\tX: {:?},\n\tY: {:?},\n\tZ: {:?}\n}}",
-            &self.X, &self.Y, &self.Z
-        )
-    }
-}
-
-impl Debug for CompletedPoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(
-            f,
-            "CompletedPoint{{\n\tX: {:?},\n\tY: {:?},\n\tZ: {:?},\n\tT: {:?}\n}}",
-            &self.X, &self.Y, &self.Z, &self.T
-        )
-    }
-}
-
-impl Debug for AffineNielsPoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(
-            f,
-            "AffineNielsPoint{{\n\ty_plus_x: {:?},\n\ty_minus_x: {:?},\n\txy2d: {:?}\n}}",
-            &self.y_plus_x, &self.y_minus_x, &self.xy2d
-        )
-    }
-}
-
-impl Debug for ProjectiveNielsPoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "ProjectiveNielsPoint{{\n\tY_plus_X: {:?},\n\tY_minus_X: {:?},\n\tZ: {:?},\n\tT2d: {:?}\n}}",
-               &self.Y_plus_X, &self.Y_minus_X, &self.Z, &self.T2d)
-    }
-}

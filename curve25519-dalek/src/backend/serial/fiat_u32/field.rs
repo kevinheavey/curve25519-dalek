@@ -57,18 +57,6 @@ use fiat_crypto::curve25519_32::*;
 #[derive(Copy, Clone)]
 pub(crate) struct FieldElement2625(pub(crate) fiat_25519_tight_field_element);
 
-impl Debug for FieldElement2625 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "FieldElement2625({:?})", &(self.0).0[..])
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for FieldElement2625 {
-    fn zeroize(&mut self) {
-        (self.0).0.zeroize();
-    }
-}
 
 impl<'b> AddAssign<&'b FieldElement2625> for FieldElement2625 {
     fn add_assign(&mut self, rhs: &'b FieldElement2625) {

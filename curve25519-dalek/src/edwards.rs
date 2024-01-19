@@ -94,12 +94,6 @@
 #![allow(non_snake_case)]
 
 use core::array::TryFromSliceError;
-use core::borrow::Borrow;
-use core::iter::Iterator;
-use core::iter::Sum;
-use core::ops::{Add, Neg, Sub};
-use core::ops::{AddAssign, SubAssign};
-use core::ops::{Mul, MulAssign};
 
 use cfg_if::cfg_if;
 
@@ -119,7 +113,6 @@ use subtle::ConditionallyNegatable;
 use crate::constants;
 
 use crate::field::FieldElement;
-use crate::scalar::Scalar;
 
 use crate::backend::serial::curve_models::AffineNielsPoint;
 use crate::backend::serial::curve_models::ProjectiveNielsPoint;
@@ -346,121 +339,6 @@ impl EdwardsPoint {
     }
 }
 
-// ------------------------------------------------------------------------
-// Addition and Subtraction
-// ------------------------------------------------------------------------
-
-impl<'a, 'b> Add<&'b EdwardsPoint> for &'a EdwardsPoint {
-    type Output = EdwardsPoint;
-    fn add(self, other: &'b EdwardsPoint) -> EdwardsPoint {
-        (self + &other.as_projective_niels()).as_extended()
-    }
-}
-
-define_add_variants!(
-    LHS = EdwardsPoint,
-    RHS = EdwardsPoint,
-    Output = EdwardsPoint
-);
-
-impl<'b> AddAssign<&'b EdwardsPoint> for EdwardsPoint {
-    fn add_assign(&mut self, _rhs: &'b EdwardsPoint) {
-        *self = (self as &EdwardsPoint) + _rhs;
-    }
-}
-
-define_add_assign_variants!(LHS = EdwardsPoint, RHS = EdwardsPoint);
-
-impl<'a, 'b> Sub<&'b EdwardsPoint> for &'a EdwardsPoint {
-    type Output = EdwardsPoint;
-    fn sub(self, other: &'b EdwardsPoint) -> EdwardsPoint {
-        (self - &other.as_projective_niels()).as_extended()
-    }
-}
-
-define_sub_variants!(
-    LHS = EdwardsPoint,
-    RHS = EdwardsPoint,
-    Output = EdwardsPoint
-);
-
-impl<'b> SubAssign<&'b EdwardsPoint> for EdwardsPoint {
-    fn sub_assign(&mut self, _rhs: &'b EdwardsPoint) {
-        *self = (self as &EdwardsPoint) - _rhs;
-    }
-}
-
-define_sub_assign_variants!(LHS = EdwardsPoint, RHS = EdwardsPoint);
-
-impl<T> Sum<T> for EdwardsPoint
-where
-    T: Borrow<EdwardsPoint>,
-{
-    fn sum<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = T>,
-    {
-        iter.fold(EdwardsPoint::identity(), |acc, item| acc + item.borrow())
-    }
-}
-
-// ------------------------------------------------------------------------
-// Negation
-// ------------------------------------------------------------------------
-
-impl<'a> Neg for &'a EdwardsPoint {
-    type Output = EdwardsPoint;
-
-    fn neg(self) -> EdwardsPoint {
-        EdwardsPoint {
-            X: -(&self.X),
-            Y: self.Y,
-            Z: self.Z,
-            T: -(&self.T),
-        }
-    }
-}
-
-
-
-// ------------------------------------------------------------------------
-// Scalar multiplication
-// ------------------------------------------------------------------------
-
-impl<'b> MulAssign<&'b Scalar> for EdwardsPoint {
-    fn mul_assign(&mut self, scalar: &'b Scalar) {
-        let result = (self as &EdwardsPoint) * scalar;
-        *self = result;
-    }
-}
-
-define_mul_assign_variants!(LHS = EdwardsPoint, RHS = Scalar);
-
-define_mul_variants!(LHS = EdwardsPoint, RHS = Scalar, Output = EdwardsPoint);
-define_mul_variants!(LHS = Scalar, RHS = EdwardsPoint, Output = EdwardsPoint);
-
-impl<'a, 'b> Mul<&'b Scalar> for &'a EdwardsPoint {
-    type Output = EdwardsPoint;
-    /// Scalar multiplication: compute `scalar * self`.
-    ///
-    /// For scalar multiplication of a basepoint,
-    /// `EdwardsBasepointTable` is approximately 4x faster.
-    fn mul(self, scalar: &'b Scalar) -> EdwardsPoint {
-        crate::backend::variable_base_mul(self, scalar)
-    }
-}
-
-impl<'a, 'b> Mul<&'b EdwardsPoint> for &'a Scalar {
-    type Output = EdwardsPoint;
-
-    /// Scalar multiplication: compute `scalar * self`.
-    ///
-    /// For scalar multiplication of a basepoint,
-    /// `EdwardsBasepointTable` is approximately 4x faster.
-    fn mul(self, point: &'b EdwardsPoint) -> EdwardsPoint {
-        point * self
-    }
-}
 
 
 

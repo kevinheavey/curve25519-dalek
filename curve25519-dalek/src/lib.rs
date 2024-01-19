@@ -53,10 +53,6 @@ extern crate std;
 #[cfg(feature = "digest")]
 pub(crate) use digest;
 
-// Internal macros. Must come first!
-#[macro_use]
-pub(crate) mod macros;
-
 //------------------------------------------------------------------------
 // curve25519-dalek public modules
 //------------------------------------------------------------------------

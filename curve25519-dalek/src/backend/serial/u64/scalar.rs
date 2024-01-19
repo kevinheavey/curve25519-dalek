@@ -245,13 +245,6 @@ impl Scalar52 {
         Scalar52::sub(&Scalar52([r0, r1, r2, r3, r4]), l)
     }
 
-    /// Compute `a * b` (mod l)
-    #[inline(never)]
-    pub(crate) fn mul(a: &Scalar52, b: &Scalar52) -> Scalar52 {
-        let ab = Scalar52::montgomery_reduce(&Scalar52::mul_internal(a, b));
-        Scalar52::montgomery_reduce(&Scalar52::mul_internal(&ab, &constants::RR))
-    }
-
     /// Compute `a^2` (mod l)
     #[inline(never)]
     #[allow(dead_code)] // XXX we don't expose square() via the Scalar API

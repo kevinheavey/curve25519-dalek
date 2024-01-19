@@ -36,7 +36,7 @@
 #![allow(non_snake_case)]
 
 use core::convert::From;
-use core::ops::{Add, Neg, Sub};
+use core::ops::{Add, Neg};
 
 use subtle::Choice;
 use subtle::ConditionallySelectable;
@@ -44,10 +44,8 @@ use subtle::ConditionallySelectable;
 use curve25519_dalek_derive::unsafe_target_feature;
 
 use crate::edwards;
-use crate::window::{LookupTable, NafLookupTable5};
+use crate::window::{LookupTable};
 
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-use crate::window::NafLookupTable8;
 
 use crate::traits::Identity;
 
@@ -278,19 +276,7 @@ impl Add<&CachedPoint> for &ExtendedPoint {
     }
 }
 
-#[unsafe_target_feature("avx2")]
-impl Sub<&CachedPoint> for &ExtendedPoint {
-    type Output = ExtendedPoint;
 
-    /// Implement subtraction by negating the point and adding.
-    ///
-    /// Empirically, this seems about the same cost as a custom
-    /// subtraction impl (maybe because the benefit is cancelled by
-    /// increased code size?)
-    fn sub(self, other: &CachedPoint) -> ExtendedPoint {
-        self + &(-other)
-    }
-}
 
 #[unsafe_target_feature("avx2")]
 impl From<&edwards::EdwardsPoint> for LookupTable<CachedPoint> {
@@ -301,34 +287,5 @@ impl From<&edwards::EdwardsPoint> for LookupTable<CachedPoint> {
             points[i + 1] = (&P + &points[i]).into();
         }
         LookupTable(points)
-    }
-}
-
-#[unsafe_target_feature("avx2")]
-impl From<&edwards::EdwardsPoint> for NafLookupTable5<CachedPoint> {
-    fn from(point: &edwards::EdwardsPoint) -> Self {
-        let A = ExtendedPoint::from(*point);
-        let mut Ai = [CachedPoint::from(A); 8];
-        let A2 = A.double();
-        for i in 0..7 {
-            Ai[i + 1] = (&A2 + &Ai[i]).into();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
-        NafLookupTable5(Ai)
-    }
-}
-
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-#[unsafe_target_feature("avx2")]
-impl From<&edwards::EdwardsPoint> for NafLookupTable8<CachedPoint> {
-    fn from(point: &edwards::EdwardsPoint) -> Self {
-        let A = ExtendedPoint::from(*point);
-        let mut Ai = [CachedPoint::from(A); 64];
-        let A2 = A.double();
-        for i in 0..63 {
-            Ai[i + 1] = (&A2 + &Ai[i]).into();
-        }
-        // Now Ai = [A, 3A, 5A, 7A, 9A, 11A, 13A, 15A, ..., 127A]
-        NafLookupTable8(Ai)
     }
 }

@@ -111,12 +111,8 @@
 //! reduces a \\(512\\)-bit integer, if the optional `digest` feature
 //! has been enabled.
 
-use core::borrow::Borrow;
-use core::iter::{Sum};
 use core::ops::Index;
-use core::ops::{Add, AddAssign};
-use core::ops::{Mul, MulAssign};
-use core::ops::{Sub, SubAssign};
+use core::ops::{Add};
 
 use cfg_if::cfg_if;
 
@@ -217,28 +213,6 @@ pub(crate) struct Scalar {
     pub(crate) bytes: [u8; 32],
 }
 
-impl Scalar {
-
-    /// Construct a `Scalar` from the low 255 bits of a 256-bit integer. This breaks the invariant
-    /// that scalars are always reduced. Scalar-scalar arithmetic, i.e., addition, subtraction,
-    /// multiplication, **does not work** on scalars produced from this function. You may only use
-    /// the output of this function for `EdwardsPoint::mul`, `MontgomeryPoint::mul`, and
-    /// `EdwardsPoint::vartime_double_scalar_mul_basepoint`. **Do not use this function** unless
-    /// you absolutely have to.
-    #[cfg(feature = "legacy_compatibility")]
-    #[deprecated(
-        since = "4.0.0",
-        note = "This constructor outputs scalars with undefined scalar-scalar arithmetic. See docs."
-    )]
-    pub(crate) const fn from_bits(bytes: [u8; 32]) -> Scalar {
-        let mut s = Scalar { bytes };
-        // Ensure invariant #1 holds. That is, make s < 2^255 by masking the high bit.
-        s.bytes[31] &= 0b0111_1111;
-
-        s
-    }
-}
-
 
 
 
@@ -251,30 +225,7 @@ impl Index<usize> for Scalar {
     }
 }
 
-impl<'b> MulAssign<&'b Scalar> for Scalar {
-    fn mul_assign(&mut self, _rhs: &'b Scalar) {
-        *self = UnpackedScalar::mul(&self.unpack(), &_rhs.unpack()).pack();
-    }
-}
 
-define_mul_assign_variants!(LHS = Scalar, RHS = Scalar);
-
-impl<'a, 'b> Mul<&'b Scalar> for &'a Scalar {
-    type Output = Scalar;
-    fn mul(self, _rhs: &'b Scalar) -> Scalar {
-        UnpackedScalar::mul(&self.unpack(), &_rhs.unpack()).pack()
-    }
-}
-
-define_mul_variants!(LHS = Scalar, RHS = Scalar, Output = Scalar);
-
-impl<'b> AddAssign<&'b Scalar> for Scalar {
-    fn add_assign(&mut self, _rhs: &'b Scalar) {
-        *self = *self + _rhs;
-    }
-}
-
-define_add_assign_variants!(LHS = Scalar, RHS = Scalar);
 
 impl<'a, 'b> Add<&'b Scalar> for &'a Scalar {
     type Output = Scalar;
@@ -286,53 +237,17 @@ impl<'a, 'b> Add<&'b Scalar> for &'a Scalar {
     }
 }
 
-define_add_variants!(LHS = Scalar, RHS = Scalar, Output = Scalar);
-
-impl<'b> SubAssign<&'b Scalar> for Scalar {
-    fn sub_assign(&mut self, _rhs: &'b Scalar) {
-        *self = *self - _rhs;
-    }
-}
-
-define_sub_assign_variants!(LHS = Scalar, RHS = Scalar);
-
-impl<'a, 'b> Sub<&'b Scalar> for &'a Scalar {
-    type Output = Scalar;
-    #[allow(non_snake_case)]
-    fn sub(self, rhs: &'b Scalar) -> Scalar {
-        // The UnpackedScalar::sub function produces reduced outputs if the inputs are reduced. By
-        // Scalar invariant #1, this is always the case.
-        UnpackedScalar::sub(&self.unpack(), &rhs.unpack()).pack()
-    }
-}
-
-define_sub_variants!(LHS = Scalar, RHS = Scalar, Output = Scalar);
 
 
 
 
 
-
-
-impl<T> Sum<T> for Scalar
-where
-    T: Borrow<Scalar>,
-{
-    fn sum<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = T>,
-    {
-        iter.fold(Scalar::ZERO, |acc, item| acc + item.borrow())
-    }
-}
 
 
 
 
 
 impl Scalar {
-    /// The scalar \\( 0 \\).
-    pub(crate) const ZERO: Self = Self { bytes: [0u8; 32] };
 
     #[cfg(feature = "digest")]
     /// Hash a slice of bytes into a scalar.

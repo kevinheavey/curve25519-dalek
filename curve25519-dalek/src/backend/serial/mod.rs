@@ -45,5 +45,3 @@ cfg_if! {
 }
 
 pub(crate) mod curve_models;
-
-pub(crate) mod scalar_mul;
