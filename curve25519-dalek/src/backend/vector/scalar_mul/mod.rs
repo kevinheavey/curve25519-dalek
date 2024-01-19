@@ -23,8 +23,4 @@ pub(crate) mod straus;
 
 #[allow(missing_docs)]
 #[cfg(feature = "alloc")]
-pub(crate) mod precomputed_straus;
-
-#[allow(missing_docs)]
-#[cfg(feature = "alloc")]
 pub(crate) mod pippenger;

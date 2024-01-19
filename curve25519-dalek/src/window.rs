@@ -198,15 +198,6 @@ impl<'a> From<&'a EdwardsPoint> for NafLookupTable5<AffineNielsPoint> {
 #[derive(Copy, Clone)]
 pub(crate) struct NafLookupTable8<T>(pub(crate) [T; 64]);
 
-#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
-impl<T: Copy> NafLookupTable8<T> {
-    pub(crate) fn select(&self, x: usize) -> T {
-        debug_assert_eq!(x & 1, 1);
-        debug_assert!(x < 128);
-
-        self.0[x / 2]
-    }
-}
 
 #[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
 impl<T: Debug> Debug for NafLookupTable8<T> {

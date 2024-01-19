@@ -19,6 +19,3 @@
 
 #[allow(missing_docs)]
 pub(crate) mod variable_base;
-
-#[cfg(feature = "alloc")]
-pub(crate) mod straus;

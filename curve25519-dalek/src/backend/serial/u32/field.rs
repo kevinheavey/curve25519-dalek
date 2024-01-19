@@ -236,53 +236,6 @@ impl<'a> Neg for &'a FieldElement2625 {
     }
 }
 
-impl ConditionallySelectable for FieldElement2625 {
-    fn conditional_select(
-        a: &FieldElement2625,
-        b: &FieldElement2625,
-        choice: Choice,
-    ) -> FieldElement2625 {
-        FieldElement2625([
-            u32::conditional_select(&a.0[0], &b.0[0], choice),
-            u32::conditional_select(&a.0[1], &b.0[1], choice),
-            u32::conditional_select(&a.0[2], &b.0[2], choice),
-            u32::conditional_select(&a.0[3], &b.0[3], choice),
-            u32::conditional_select(&a.0[4], &b.0[4], choice),
-            u32::conditional_select(&a.0[5], &b.0[5], choice),
-            u32::conditional_select(&a.0[6], &b.0[6], choice),
-            u32::conditional_select(&a.0[7], &b.0[7], choice),
-            u32::conditional_select(&a.0[8], &b.0[8], choice),
-            u32::conditional_select(&a.0[9], &b.0[9], choice),
-        ])
-    }
-
-    fn conditional_assign(&mut self, other: &FieldElement2625, choice: Choice) {
-        self.0[0].conditional_assign(&other.0[0], choice);
-        self.0[1].conditional_assign(&other.0[1], choice);
-        self.0[2].conditional_assign(&other.0[2], choice);
-        self.0[3].conditional_assign(&other.0[3], choice);
-        self.0[4].conditional_assign(&other.0[4], choice);
-        self.0[5].conditional_assign(&other.0[5], choice);
-        self.0[6].conditional_assign(&other.0[6], choice);
-        self.0[7].conditional_assign(&other.0[7], choice);
-        self.0[8].conditional_assign(&other.0[8], choice);
-        self.0[9].conditional_assign(&other.0[9], choice);
-    }
-
-    fn conditional_swap(a: &mut FieldElement2625, b: &mut FieldElement2625, choice: Choice) {
-        u32::conditional_swap(&mut a.0[0], &mut b.0[0], choice);
-        u32::conditional_swap(&mut a.0[1], &mut b.0[1], choice);
-        u32::conditional_swap(&mut a.0[2], &mut b.0[2], choice);
-        u32::conditional_swap(&mut a.0[3], &mut b.0[3], choice);
-        u32::conditional_swap(&mut a.0[4], &mut b.0[4], choice);
-        u32::conditional_swap(&mut a.0[5], &mut b.0[5], choice);
-        u32::conditional_swap(&mut a.0[6], &mut b.0[6], choice);
-        u32::conditional_swap(&mut a.0[7], &mut b.0[7], choice);
-        u32::conditional_swap(&mut a.0[8], &mut b.0[8], choice);
-        u32::conditional_swap(&mut a.0[9], &mut b.0[9], choice);
-    }
-}
-
 impl FieldElement2625 {
     pub(crate) const fn from_limbs(limbs: [u32; 10]) -> FieldElement2625 {
         FieldElement2625(limbs)

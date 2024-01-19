@@ -326,24 +326,6 @@ impl ConditionallySelectable for AffineNielsPoint {
     }
 }
 
-// ------------------------------------------------------------------------
-// Point conversions
-// ------------------------------------------------------------------------
-
-impl ProjectivePoint {
-    /// Convert this point from the \\( \mathbb P\^2 \\) model to the
-    /// \\( \mathbb P\^3 \\) model.
-    ///
-    /// This costs \\(3 \mathrm M + 1 \mathrm S\\).
-    pub(crate) fn as_extended(&self) -> EdwardsPoint {
-        EdwardsPoint {
-            X: &self.X * &self.Z,
-            Y: &self.Y * &self.Z,
-            Z: self.Z.square(),
-            T: &self.X * &self.Y,
-        }
-    }
-}
 
 impl CompletedPoint {
     /// Convert this point from the \\( \mathbb P\^1 \times \mathbb P\^1
