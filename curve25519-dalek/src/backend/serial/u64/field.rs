@@ -12,17 +12,14 @@
 //! Field arithmetic modulo \\(p = 2\^{255} - 19\\), using \\(64\\)-bit
 //! limbs with \\(128\\)-bit products.
 
-use core::fmt::Debug;
 use core::ops::Neg;
 use core::ops::{Add, AddAssign};
-use core::ops::{Mul, MulAssign};
-use core::ops::{Sub, SubAssign};
+use core::ops::{Mul};
+use core::ops::{Sub};
 
 use subtle::Choice;
 use subtle::ConditionallySelectable;
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
 
 /// A `FieldElement51` represents an element of the field
 /// \\( \mathbb Z / (2\^{255} - 19)\\).
@@ -42,19 +39,6 @@ use zeroize::Zeroize;
 #[derive(Copy, Clone)]
 pub(crate) struct FieldElement51(pub(crate) [u64; 5]);
 
-impl Debug for FieldElement51 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "FieldElement51({:?})", &self.0[..])
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for FieldElement51 {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-
 impl<'b> AddAssign<&'b FieldElement51> for FieldElement51 {
     fn add_assign(&mut self, _rhs: &'b FieldElement51) {
         for i in 0..5 {
@@ -72,12 +56,6 @@ impl<'a, 'b> Add<&'b FieldElement51> for &'a FieldElement51 {
     }
 }
 
-impl<'b> SubAssign<&'b FieldElement51> for FieldElement51 {
-    fn sub_assign(&mut self, _rhs: &'b FieldElement51) {
-        let result = (self as &FieldElement51) - _rhs;
-        self.0 = result.0;
-    }
-}
 
 impl<'a, 'b> Sub<&'b FieldElement51> for &'a FieldElement51 {
     type Output = FieldElement51;
@@ -101,12 +79,7 @@ impl<'a, 'b> Sub<&'b FieldElement51> for &'a FieldElement51 {
     }
 }
 
-impl<'b> MulAssign<&'b FieldElement51> for FieldElement51 {
-    fn mul_assign(&mut self, _rhs: &'b FieldElement51) {
-        let result = (self as &FieldElement51) * _rhs;
-        self.0 = result.0;
-    }
-}
+
 
 impl<'a, 'b> Mul<&'b FieldElement51> for &'a FieldElement51 {
     type Output = FieldElement51;

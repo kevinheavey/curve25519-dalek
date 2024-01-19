@@ -125,14 +125,9 @@
 
 use core::ops::{Add, Neg, Sub};
 
-use subtle::Choice;
-use subtle::ConditionallySelectable;
-
-use crate::constants;
 
 use crate::edwards::EdwardsPoint;
 use crate::field::FieldElement;
-use crate::traits::ValidityCheck;
 
 // ------------------------------------------------------------------------
 // Internal point representations
@@ -201,80 +196,6 @@ pub(crate) struct ProjectiveNielsPoint {
 // Constructors
 // ------------------------------------------------------------------------
 
-use crate::traits::Identity;
-
-
-
-impl Identity for ProjectiveNielsPoint {
-    fn identity() -> ProjectiveNielsPoint {
-        ProjectiveNielsPoint {
-            Y_plus_X: FieldElement::ONE,
-            Y_minus_X: FieldElement::ONE,
-            Z: FieldElement::ONE,
-            T2d: FieldElement::ZERO,
-        }
-    }
-}
-
-
-
-
-// ------------------------------------------------------------------------
-// Validity checks (for debugging, not CT)
-// ------------------------------------------------------------------------
-
-impl ValidityCheck for ProjectivePoint {
-    fn is_valid(&self) -> bool {
-        // Curve equation is    -x^2 + y^2 = 1 + d*x^2*y^2,
-        // homogenized as (-X^2 + Y^2)*Z^2 = Z^4 + d*X^2*Y^2
-        let XX = self.X.square();
-        let YY = self.Y.square();
-        let ZZ = self.Z.square();
-        let ZZZZ = ZZ.square();
-        let lhs = &(&YY - &XX) * &ZZ;
-        let rhs = &ZZZZ + &(&constants::EDWARDS_D * &(&XX * &YY));
-
-        lhs == rhs
-    }
-}
-
-// ------------------------------------------------------------------------
-// Constant-time assignment
-// ------------------------------------------------------------------------
-
-impl ConditionallySelectable for ProjectiveNielsPoint {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        ProjectiveNielsPoint {
-            Y_plus_X: FieldElement::conditional_select(&a.Y_plus_X, &b.Y_plus_X, choice),
-            Y_minus_X: FieldElement::conditional_select(&a.Y_minus_X, &b.Y_minus_X, choice),
-            Z: FieldElement::conditional_select(&a.Z, &b.Z, choice),
-            T2d: FieldElement::conditional_select(&a.T2d, &b.T2d, choice),
-        }
-    }
-
-    fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        self.Y_plus_X.conditional_assign(&other.Y_plus_X, choice);
-        self.Y_minus_X.conditional_assign(&other.Y_minus_X, choice);
-        self.Z.conditional_assign(&other.Z, choice);
-        self.T2d.conditional_assign(&other.T2d, choice);
-    }
-}
-
-impl ConditionallySelectable for AffineNielsPoint {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        AffineNielsPoint {
-            y_plus_x: FieldElement::conditional_select(&a.y_plus_x, &b.y_plus_x, choice),
-            y_minus_x: FieldElement::conditional_select(&a.y_minus_x, &b.y_minus_x, choice),
-            xy2d: FieldElement::conditional_select(&a.xy2d, &b.xy2d, choice),
-        }
-    }
-
-    fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        self.y_plus_x.conditional_assign(&other.y_plus_x, choice);
-        self.y_minus_x.conditional_assign(&other.y_minus_x, choice);
-        self.xy2d.conditional_assign(&other.xy2d, choice);
-    }
-}
 
 
 impl CompletedPoint {

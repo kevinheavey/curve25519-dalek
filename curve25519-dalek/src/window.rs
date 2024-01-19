@@ -17,13 +17,6 @@ use core::fmt::Debug;
 
 use cfg_if::cfg_if;
 
-use subtle::Choice;
-use subtle::ConditionallyNegatable;
-use subtle::ConditionallySelectable;
-use subtle::ConstantTimeEq;
-
-use crate::traits::Identity;
-
 use crate::backend::serial::curve_models::AffineNielsPoint;
 use crate::backend::serial::curve_models::ProjectiveNielsPoint;
 use crate::edwards::EdwardsPoint;
@@ -42,58 +35,6 @@ macro_rules! impl_lookup_table {
         /// access to the table.
         #[derive(Copy, Clone)]
         pub(crate) struct $name<T>(pub(crate) [T; $size]);
-
-        impl<T> $name<T>
-        where
-            T: Identity + ConditionallySelectable + ConditionallyNegatable,
-        {
-            /// Given \\(-8 \leq x \leq 8\\), return \\(xP\\) in constant time.
-            pub(crate) fn select(&self, x: i8) -> T {
-                debug_assert!(x >= $neg);
-                debug_assert!(x as i16 <= $size as i16); // XXX We have to convert to i16s here for the radix-256 case.. this is wrong.
-
-                // Compute xabs = |x|
-                let xmask = x as i16 >> 7;
-                let xabs = (x as i16 + xmask) ^ xmask;
-
-                // Set t = 0 * P = identity
-                let mut t = T::identity();
-                for j in $range {
-                    // Copy `points[j-1] == j*P` onto `t` in constant time if `|x| == j`.
-                    let c = (xabs as u16).ct_eq(&(j as u16));
-                    t.conditional_assign(&self.0[j - 1], c);
-                }
-                // Now t == |x| * P.
-
-                let neg_mask = Choice::from((xmask & 1) as u8);
-                t.conditional_negate(neg_mask);
-                // Now t == x * P.
-
-                t
-            }
-        }
-
-        impl<T: Debug> Debug for $name<T> {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                write!(f, "{:?}(", stringify!($name))?;
-
-                for x in self.0.iter() {
-                    write!(f, "{:?}", x)?;
-                }
-
-                write!(f, ")")
-            }
-        }
-
-        impl<'a> From<&'a EdwardsPoint> for $name<ProjectiveNielsPoint> {
-            fn from(P: &'a EdwardsPoint) -> Self {
-                let mut points = [P.as_projective_niels(); $size];
-                for j in $conv_range {
-                    points[j + 1] = (P + &points[j]).as_extended().as_projective_niels();
-                }
-                $name(points)
-            }
-        }
     };
 } // End macro_rules! impl_lookup_table
 

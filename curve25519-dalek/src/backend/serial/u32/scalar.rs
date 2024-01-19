@@ -23,31 +23,6 @@ use crate::constants;
 #[derive(Copy, Clone)]
 pub(crate) struct Scalar29(pub [u32; 9]);
 
-impl Debug for Scalar29 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "Scalar29: {:?}", &self.0[..])
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for Scalar29 {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-
-impl Index<usize> for Scalar29 {
-    type Output = u32;
-    fn index(&self, _index: usize) -> &u32 {
-        &(self.0[_index])
-    }
-}
-
-impl IndexMut<usize> for Scalar29 {
-    fn index_mut(&mut self, _index: usize) -> &mut u32 {
-        &mut (self.0[_index])
-    }
-}
 
 /// u32 * u32 = u64 multiply helper
 #[inline(always)]

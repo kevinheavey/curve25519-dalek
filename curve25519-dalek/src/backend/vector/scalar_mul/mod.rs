@@ -12,7 +12,4 @@
 //! Implementations of various multiplication algorithms for the SIMD backends.
 
 #[allow(missing_docs)]
-pub(crate) mod variable_base;
-
-#[allow(missing_docs)]
 pub(crate) mod vartime_double_base;

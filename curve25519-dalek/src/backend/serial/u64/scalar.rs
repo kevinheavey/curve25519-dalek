@@ -24,19 +24,6 @@ use crate::constants;
 #[derive(Copy, Clone)]
 pub(crate) struct Scalar52(pub [u64; 5]);
 
-impl Debug for Scalar52 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "Scalar52: {:?}", &self.0[..])
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for Scalar52 {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-
 impl Index<usize> for Scalar52 {
     type Output = u64;
     fn index(&self, _index: usize) -> &u64 {
