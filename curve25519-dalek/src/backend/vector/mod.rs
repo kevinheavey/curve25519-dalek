@@ -11,9 +11,5 @@
 
 #![doc = include_str!("../../../docs/parallel-formulas.md")]
 
-#[allow(missing_docs)]
-pub(crate) mod packed_simd;
-
-pub(crate) mod avx2;
 
 pub(crate) mod scalar_mul;
